@@ -1,0 +1,222 @@
+{
+  "appId": "com.flowz.app",
+  "productName": "FlowZ Clash",
+  "copyright": "Copyright © 2025",
+  "directories": {
+    "output": "dist-package",
+    "buildResources": "build"
+  },
+  "files": [
+    "dist/**/*",
+    "package.json"
+  ],
+  "electronLanguages": [
+    "zh-CN",
+    "zh-TW",
+    "en-US",
+    "ru",
+    "fa"
+  ],
+  "asar": true,
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": [
+          "x64"
+        ]
+      },
+      {
+        "target": "portable",
+        "arch": [
+          "x64"
+        ]
+      }
+    ],
+    "icon": "build/icon.ico",
+    "artifactName": "${productName}-${version}-win-${arch}-setup.${ext}",
+    "extraResources": [
+      {
+        "from": "resources",
+        "to": ".",
+        "filter": [
+          "app.png",
+          "app-gray.png"
+        ]
+      },
+      {
+        "from": "resources/win",
+        "to": "win",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "resources/data",
+        "to": "data",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "resources/dashboard",
+        "to": "dashboard",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ]
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "FlowZ Clash",
+    "installerIcon": "build/icon.ico",
+    "uninstallerIcon": "build/icon.ico",
+    "installerHeaderIcon": "build/icon.ico",
+    "deleteAppDataOnUninstall": false,
+    "include": "build/installer.nsh"
+  },
+  "portable": {
+    "artifactName": "${productName}-${version}-win-${arch}-portable.${ext}",
+    "unpackDirName": "FlowZ Clash"
+  },
+  "mac": {
+    "target": [
+      {
+        "target": "dir",
+        "arch": [
+          "arm64",
+          "x64"
+        ]
+      }
+    ],
+    "icon": "build/icon.icns",
+    "category": "public.app-category.utilities",
+    "artifactName": "${productName}-${version}-mac-${arch}.${ext}",
+    "identity": null,
+    "gatekeeperAssess": false,
+    "extendInfo": {
+      "CFBundleLocalizations": [
+        "en",
+        "zh-Hans",
+        "zh-Hant",
+        "ru",
+        "fa"
+      ],
+      "CFBundleAllowMixedLocalizations": true
+    },
+    "extraResources": [
+      {
+        "from": "resources/mac-${arch}",
+        "to": "mac",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "resources/data",
+        "to": "data",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "resources/dashboard",
+        "to": "dashboard",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "resources",
+        "to": ".",
+        "filter": [
+          "app.png",
+          "app-gray.png"
+        ]
+      }
+    ]
+  },
+  "dmg": {
+    "contents": [
+      {
+        "x": 130,
+        "y": 220
+      },
+      {
+        "x": 410,
+        "y": 220,
+        "type": "link",
+        "path": "/Applications"
+      }
+    ],
+    "title": "${productName}-${version}",
+    "icon": "build/icon.icns",
+    "backgroundColor": "#ffffff",
+    "window": {
+      "width": 540,
+      "height": 380
+    }
+  },
+  "linux": {
+    "target": [
+      "AppImage",
+      "deb"
+    ],
+    "category": "Network",
+    "icon": "build/icons",
+    "synopsis": "Clean, modern cross-platform proxy client",
+    "description": "FlowZ Clash - a clean, modern cross-platform proxy client.",
+    "desktop": {
+      "entry": {
+        "Comment[zh_CN]": "简洁现代的跨平台代理客户端",
+        "Comment[zh_TW]": "簡潔現代的跨平台代理客戶端",
+        "Comment[ru]": "Простой современный кроссплатформенный прокси-клиент",
+        "Comment[fa]": "کلاینت پروکسی مدرن و چندسکویی"
+      }
+    },
+    "syncDesktopName": true,
+    "artifactName": "${productName}-${version}-linux-${arch}.${ext}",
+    "extraResources": [
+      {
+        "from": "resources/linux",
+        "to": "linux",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "resources/data",
+        "to": "data",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "resources/dashboard",
+        "to": "dashboard",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "resources",
+        "to": ".",
+        "filter": [
+          "app.png",
+          "app-gray.png"
+        ]
+      }
+    ]
+  },
+  "deb": {
+    "recommends": [
+      "policykit-1"
+    ]
+  },
+  "publish": null
+}
