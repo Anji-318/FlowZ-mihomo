@@ -103,9 +103,9 @@
 ### 首页 · 连接总览
 所见即所得的连接状态、节点切换、实时速率与连接拓扑。亮 / 暗双主题：
 
-| 浅色主题 | 深色主题 |
-|:---:|:---:|
-| <img src="docs/screenshots/home-light.webp" width="100%"> | <img src="docs/screenshots/home-dark.webp" width="100%"> |
+ 浅色主题 
+
+ <img src="docs/screenshots/home-light.webp" width="100%"> 
 
 ### 节点与订阅
 订阅一键导入、节点卡片管理、协议标识、批量测速与排序：
