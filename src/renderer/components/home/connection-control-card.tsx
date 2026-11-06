@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { NodePicker } from '@/components/ui/node-picker';
 import { buildServerPickerModel } from '@/components/ui/server-picker-items';
 import {
@@ -12,6 +12,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useAppStore } from '@/store/app-store';
+import { api } from '@/ipc/api-client';
 import { useNodeSortStore } from '@/store/use-node-sort-store';
 import { useSpeedTest } from '@/components/settings/use-speed-test';
 import {
@@ -168,6 +169,38 @@ export function ConnectionControlCard() {
 
   const isServerConfigured = isServerComplete(selectedServer);
   const meshNoInternet = !!selectedServer && isMeshNodeUnroutable(selectedServer);
+
+  // 自动选优：url-test 组的实际出口由内核决定，与 selectedServerId（手选/初始值）会分叉。
+  // 这里轮询内核的组状态（GET /proxies/proxy-selector → now）用于界面显示真实出口，
+  // 否则用户会看到「出口还停在慢节点」，误以为自动选优没生效（实测踩过）。
+  const [autoOutboundTag, setAutoOutboundTag] = useState<string | null>(null);
+  useEffect(() => {
+    if (config?.autoSelectFastest !== true || !isConnected) {
+      setAutoOutboundTag(null);
+      return;
+    }
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const r = await api.proxy.getActiveOutbound();
+        if (!cancelled) setAutoOutboundTag(r.tag);
+      } catch {
+        /* 读不到就维持上一次显示，不打断 UI */
+      }
+    };
+    void tick();
+    const timer = setInterval(tick, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [config?.autoSelectFastest, isConnected]);
+
+  // 内核 tag 可能是去重后的名字（重名节点会带 " (2)"），匹配不到就直接显示 tag 原文。
+  const autoOutboundName =
+    autoOutboundTag != null
+      ? (servers.find((s) => s.name === autoOutboundTag)?.name ?? autoOutboundTag)
+      : null;
   const startDisabledReason = !isServerConfigured
     ? meshNoInternet
       ? t('home.meshNoInternetGate')
@@ -385,10 +418,11 @@ export function ConnectionControlCard() {
                   className="text-[11px] whitespace-nowrap text-[hsl(var(--flow-hi))]"
                   title={t(
                     'home.autoSelectHint',
-                    '已开启自动选优：出口由内核按测速结果决定；手动选择节点会关闭该模式'
+                    '已开启自动选优：出口由内核按测速结果决定（这里显示内核实际选中的节点）；手动选择节点会关闭该模式'
                   )}
                 >
                   {t('home.autoSelectBadge', '自动选优')}
+                  {autoOutboundName ? ` · ${autoOutboundName}` : ''}
                 </span>
               )}
               {servers.length > 0 && (

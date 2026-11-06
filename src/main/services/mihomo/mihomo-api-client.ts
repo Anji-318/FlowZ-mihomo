@@ -328,6 +328,22 @@ export class MihomoApiClient {
 
   // ---------- clash 等价管理方法 ----------
 
+  /**
+   * 读组的当前选中成员（GET /proxies/{group} → { now, type, all }）。
+   * url-test 组由内核自选，"now" 才是真实出口 —— 界面上的 selectedServerId 只是「手选/初始」值，
+   * 两者在自动选优模式下会分叉（用户看到出口没变、实际已经切了）。
+   */
+  async getGroupNow(groupTag: string): Promise<string | null> {
+    const { status, body } = await this.request('GET', `/proxies/${encodeURIComponent(groupTag)}`);
+    if (status < 200 || status >= 300) return null;
+    try {
+      const j = JSON.parse(body);
+      return typeof j?.now === 'string' && j.now ? j.now : null;
+    } catch {
+      return null;
+    }
+  }
+
   /** 在 selector 组内选定出站（热切换）。groupTag 需 URL 编码。 */
   selectOutbound(groupTag: string, outboundTag: string): Promise<void> {
     return this.call('PUT', `/proxies/${encodeURIComponent(groupTag)}`, { name: outboundTag });

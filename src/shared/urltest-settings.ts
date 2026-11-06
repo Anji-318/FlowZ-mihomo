@@ -8,14 +8,15 @@
  *   · interval 下限 10s —— 再短探测流量与节点压力都不划算；上限 1h —— 再长等于没有自动切换。
  *   · 默认 60s：比 mihomo 生态默认（300s）激进，因为本项目的卖点之一是「坏节点尽快切走」；
  *     60s × 20 节点 ≈ 2.9 万次/天，仍在可接受范围（每次请求仅几百字节）。
- *   · tolerance 默认 50ms：小于这是网络正常抖动，切来切去只会让连接更碎。
+ *   · tolerance 默认 20ms：50ms 会让「65ms vs 112ms」这种 47ms 的明显差距不触发切换（实测被用户当成失效），
+ *     20ms 只挡掉 87↔90 这种正常抖动。
  */
 import { DEFAULT_SPEED_TEST_URL } from './speed-test';
 
 export const DEFAULT_URLTEST_INTERVAL_SEC = 60;
 export const MIN_URLTEST_INTERVAL_SEC = 10;
 export const MAX_URLTEST_INTERVAL_SEC = 3600;
-export const DEFAULT_URLTEST_TOLERANCE_MS = 50;
+export const DEFAULT_URLTEST_TOLERANCE_MS = 20;
 export const MAX_URLTEST_TOLERANCE_MS = 2000;
 
 /** 设置页给出的预设（秒）。自由输入也会被 clamp 到 [MIN, MAX]。 */

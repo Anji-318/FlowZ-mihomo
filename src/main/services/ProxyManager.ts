@@ -1139,6 +1139,20 @@ export class ProxyManager extends EventEmitter implements IProxyManager {
    * best-effort + 短重试，管理 API 刚起可能未就绪；失败不影响启动（cache/default 仍是有效节点）。
    * proxy-selector 成功后再 reassert rule-sel（管理 API 已就绪，rule-sel 通常首轮即成）。
    */
+  /**
+   * 自动选优（url-test）下内核当前实际选中的成员 tag；核未运行/读取失败返回 null。
+   * 与 getDashboardConnectionInfo 同为「管理面只读查询」，渲染端不持 secret。
+   */
+  async getActiveOutboundTag(): Promise<string | null> {
+    const client = this.tailscaleApiClient;
+    if (!client) return null;
+    try {
+      return await client.getGroupNow('proxy-selector');
+    } catch {
+      return null;
+    }
+  }
+
   private async reassertSelectorSelection(config: UserConfig): Promise<void> {
     // 自动选优（url-test）：出口由内核按测速结果自己决定。这里若继续 PUT selectedServerId，会把内核刚选出的
     // 最快节点覆盖回「用户上次手选的节点」，且每次起核/重载都会发生 —— url-test 等于白配。故只对账规则组。

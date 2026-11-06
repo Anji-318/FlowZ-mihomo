@@ -3,6 +3,8 @@ export const IPC_CHANNELS = {
   PROXY_START: 'proxy:start',
   PROXY_STOP: 'proxy:stop',
   PROXY_GET_STATUS: 'proxy:getStatus',
+  /** 自动选优：读内核当前实际选中的出口成员（url-test 组的 now）。 */
+  PROXY_GET_ACTIVE_OUTBOUND: 'proxy:getActiveOutbound',
   PROXY_RESTART: 'proxy:restart',
   // §2 待应用差集（pull 模型，configChanged/STARTED/STOPPED 后拉）：节点集相对运行核快照的增/改/删差集，供动作条汇总
   // + 待入池/待生效徽标数据源。核未运行（无快照）→ 空差集（动作条隐藏）。

@@ -35,6 +35,12 @@ export function registerProxyHandlers(
     proxyManager.probeOutbound(args?.outbound, args?.isEndpoint)
   );
 
+  // 自动选优：读内核当前实际出口（url-test 组 now）。轮询很轻（一条本机 REST），仅 UI 显示用。
+  registerIpcHandler<void, { tag: string | null }>(
+    IPC_CHANNELS.PROXY_GET_ACTIVE_OUTBOUND,
+    async () => ({ tag: await proxyManager.getActiveOutboundTag() })
+  );
+
   // 关单条连接：经 ProxyManager（9090 keep-alive agent + Bearer secret 内部封装）发 DELETE /connections/{id}，
   // 渲染端不持 secret。返回 ok 布尔（核未运行/鉴权未就绪 → ok:false，渲染端按布尔决策）。
   registerIpcHandler<{ id: string }, { ok: boolean }>(

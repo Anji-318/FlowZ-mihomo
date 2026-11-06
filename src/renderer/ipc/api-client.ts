@@ -47,6 +47,11 @@ export const proxyApi = {
     return ipcClient.invoke(IPC_CHANNELS.PROXY_RESTART);
   },
 
+  /** 自动选优：内核当前实际选中的出口（tag 为内核内节点名；非自动模式/核未起时为 null）。 */
+  async getActiveOutbound(): Promise<{ tag: string | null }> {
+    return ipcClient.invoke(IPC_CHANNELS.PROXY_GET_ACTIVE_OUTBOUND);
+  },
+
   async getStatus(): Promise<ProxyStatus> {
     return ipcClient.invoke(IPC_CHANNELS.PROXY_GET_STATUS);
   },
