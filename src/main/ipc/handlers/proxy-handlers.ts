@@ -41,6 +41,12 @@ export function registerProxyHandlers(
     async () => ({ tag: await proxyManager.getActiveOutboundTag() })
   );
 
+  // 自动选优：把内核最近一次测速结果回灌列表（只读，不触发新测速）。
+  registerIpcHandler<void, Record<string, number>>(
+    IPC_CHANNELS.PROXY_GET_KERNEL_DELAYS,
+    async () => proxyManager.getKernelDelays()
+  );
+
   // 关单条连接：经 ProxyManager（9090 keep-alive agent + Bearer secret 内部封装）发 DELETE /connections/{id}，
   // 渲染端不持 secret。返回 ok 布尔（核未运行/鉴权未就绪 → ok:false，渲染端按布尔决策）。
   registerIpcHandler<{ id: string }, { ok: boolean }>(

@@ -343,6 +343,31 @@ export class MihomoApiClient {
   }
 
   /**
+   * 一次读全部节点的最近一次测速延迟（GET /proxies 的 history 末项），0 视为失败记 -1。
+   * 用途：自动选优下把「内核每 interval 测出来的真实延迟」回灌到界面列表 —— 否则列表只有手动点
+   * 「测速」才更新，会长期显示过期数字（实测：界面 65ms 的节点内核已 503 超时）。
+   */
+  async getAllProxyDelays(): Promise<Record<string, number>> {
+    const { status, body } = await this.request('GET', '/proxies');
+    if (status < 200 || status >= 300) return {};
+    try {
+      const j = JSON.parse(body) as {
+        proxies?: Record<string, { history?: Array<{ delay?: number }> }>;
+      };
+      const out: Record<string, number> = {};
+      for (const [name, p] of Object.entries(j.proxies ?? {})) {
+        const h = p?.history;
+        if (!h || h.length === 0) continue;
+        const last = h[h.length - 1]?.delay;
+        if (typeof last === 'number') out[name] = last > 0 ? last : -1;
+      }
+      return out;
+    } catch {
+      return {};
+    }
+  }
+
+  /**
    * 读组的当前选中成员（GET /proxies/{group} → { now, type, all }）。
    * url-test 组由内核自选，"now" 才是真实出口 —— 界面上的 selectedServerId 只是「手选/初始」值，
    * 两者在自动选优模式下会分叉（用户看到出口没变、实际已经切了）。

@@ -7,6 +7,7 @@ import { HomePage } from './pages/home-page';
 import { LogsPage } from './pages/logs-page';
 import { ConnectionsPage } from './pages/connections-page';
 import { ServerPage } from './pages/server-page';
+import { useKernelLatencySync } from './hooks/use-kernel-latency-sync';
 import { RulesPage } from './pages/rules-page';
 import { RuleResourcesPage } from './pages/rule-resources-page';
 import { AppPolicyPage } from './pages/app-policy-page';
@@ -27,6 +28,8 @@ import type { SpeedTestOutcome } from '../shared/speed-test';
 import i18n, { initialLanguageChoice } from './i18n';
 
 function App() {
+  // 自动选优开启时把内核测速结果回灌列表（每 30s），保证「列表显示的延迟」与「内核选中的节点」一致。
+  useKernelLatencySync();
   const currentView = useAppStore((state) => state.currentView);
   const setCurrentView = useAppStore((state) => state.setCurrentView);
   const settingsSection = useAppStore((state) => state.settingsSection);

@@ -1144,6 +1144,20 @@ export class ProxyManager extends EventEmitter implements IProxyManager {
    * 自动选优（url-test）下内核当前实际选中的成员 tag；核未运行/读取失败返回 null。
    * 与 getDashboardConnectionInfo 同为「管理面只读查询」，渲染端不持 secret。
    */
+  /**
+   * 内核最近一次全量测速结果（tag → 毫秒，-1=失败）。自动选优模式下用于把列表延迟对齐内核真实数据。
+   * 只读管理面，不触发新测速（避免与内核自己的 interval 重复施压）。
+   */
+  async getKernelDelays(): Promise<Record<string, number>> {
+    const client = this.tailscaleApiClient;
+    if (!client) return {};
+    try {
+      return await client.getAllProxyDelays();
+    } catch {
+      return {};
+    }
+  }
+
   async getActiveOutboundTag(): Promise<string | null> {
     const client = this.tailscaleApiClient;
     if (!client) return null;

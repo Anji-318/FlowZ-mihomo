@@ -52,6 +52,11 @@ export const proxyApi = {
     return ipcClient.invoke(IPC_CHANNELS.PROXY_GET_ACTIVE_OUTBOUND);
   },
 
+  /** 自动选优：内核最近一次全量测速结果（tag → ms，-1=失败；只读，不触发新测速）。 */
+  async getKernelDelays(): Promise<Record<string, number>> {
+    return ipcClient.invoke(IPC_CHANNELS.PROXY_GET_KERNEL_DELAYS);
+  },
+
   async getStatus(): Promise<ProxyStatus> {
     return ipcClient.invoke(IPC_CHANNELS.PROXY_GET_STATUS);
   },
