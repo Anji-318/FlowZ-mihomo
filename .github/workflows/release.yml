@@ -184,6 +184,9 @@ jobs:
             fi
             echo "Using ${ARCH} app bundle: $APP_PATH"
             echo "Ad-hoc deep signing ${ARCH} app bundle (fix Team ID mismatch)..."
+            # 先清 xattr：electron-builder 产物可能带资源分叉/Finder 信息，codesign 会报
+            # "resource fork, Finder information, or similar detritus not allowed"。
+            xattr -cr "$APP_PATH" || true
             codesign --force --deep --sign - "$APP_PATH"
 
             echo "Creating ${ARCH} DMG..."
@@ -193,10 +196,35 @@ jobs:
             # ad-hoc 签名（无付费 Developer ID/公证）→ 从 DMG 拖出的 app 带 quarantine，首次打开报「已损坏」，
             # 须 xattr -cr。DMG 内附首次打开引导（中英），排在 app 前更显眼。
             cp "build/macos-dmg-open-guide.txt" "$TEMP_DIR/0 首次打开必读 READ ME FIRST.txt"
-            hdiutil create -volname "FlowZ Mihomo ${VERSION} (${ARCH})" \
-              -srcfolder "$TEMP_DIR" \
-              -ov -format UDZO \
-              "$DMG_PATH"
+
+            # hdiutil 在 GitHub macOS runner 上会偶发 `create failed - Resource busy`
+            # （卷名与已挂载卷撞名 / Spotlight 正在索引 / 上一次尝试的挂载残留）。四项加固：
+            #   ① 先删同名产物（-ov 不保证清理挂载记录）；
+            #   ② 卷名加随机后缀，避免和任何已挂载卷同名；
+            #   ③ 显式 -fs HFS+（默认文件系统探测在部分镜像上不稳）；
+            #   ④ 失败重试 3 次（该错误多为瞬时状态），全失败才打印 hdiutil info 报错退出。
+            rm -f "$DMG_PATH"
+            created=0
+            for attempt in 1 2 3; do
+              if hdiutil create \
+                   -volname "FlowZ Mihomo ${VERSION} ${ARCH} ${RANDOM}" \
+                   -srcfolder "$TEMP_DIR" \
+                   -fs HFS+ \
+                   -format UDZO \
+                   -ov \
+                   "$DMG_PATH"; then
+                created=1
+                break
+              fi
+              echo "::warning::hdiutil 第 ${attempt}/3 次失败（Resource busy 多为 runner 瞬时状态），3s 后重试"
+              sleep 3
+            done
+            if [ "$created" != "1" ]; then
+              echo "::error::hdiutil 连续 3 次失败，输出挂载信息与暂存目录便于排查"
+              hdiutil info | sed -n '1,40p' || true
+              ls -la "$TEMP_DIR" || true
+              exit 1
+            fi
             rm -rf "$TEMP_DIR"
             echo "Created: $DMG_PATH"
           done
