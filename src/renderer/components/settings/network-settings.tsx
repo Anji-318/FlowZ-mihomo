@@ -23,6 +23,7 @@ import {
 import type { CustomDnsUpstream, DnsConfig, TunStack } from '@shared/types';
 import { DEFAULT_BYPASS_LAN } from '@shared/system-proxy-bypass';
 import { parseSpeedTestUrl, DEFAULT_SPEED_TEST_URL } from '@shared/speed-test';
+import { URLTEST_INTERVAL_PRESETS, resolveUrltestSettings } from '@shared/urltest-settings';
 import {
   resolveTunStack,
   resolveTunMtu,
@@ -813,6 +814,43 @@ export function NetworkSettings() {
             onChange={(c) => setBool('autoSwitchNode', c)}
           />
         </Srow>
+        {/* 自动选优：把出口交给内核 url-test。与上面的「故障切换」互斥——开启后心跳换节点停用，
+            改由内核按测速结果自选，坏节点在下一轮测速被跳过。 */}
+        <Srow
+          label={t('settings.advanced.autoSelectFastest')}
+          desc={t('settings.advanced.autoSelectFastestDesc')}
+        >
+          <Swt
+            checked={config.autoSelectFastest === true}
+            onChange={(c) => setBool('autoSelectFastest', c)}
+          />
+        </Srow>
+        {config.autoSelectFastest === true && (
+          <Srow
+            label={t('settings.advanced.urltestInterval')}
+            desc={t('settings.advanced.urltestIntervalDesc')}
+          >
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+              {URLTEST_INTERVAL_PRESETS.map((sec) => {
+                const active = resolveUrltestSettings(config).interval === sec;
+                return (
+                  <button
+                    key={sec}
+                    type="button"
+                    className={active ? 'btn flow sm' : 'btn ghost sm'}
+                    onClick={() =>
+                      saveConfig({ ...config, urltestIntervalSec: sec }).catch(() =>
+                        toast.error(t('common.saveFailed'))
+                      )
+                    }
+                  >
+                    {sec < 60 ? `${sec}s` : `${sec / 60}min`}
+                  </button>
+                );
+              })}
+            </div>
+          </Srow>
+        )}
         <Srow
           label={t('settings.network.meshLoginFallback', '组网登录期出口让位')}
           desc={t(

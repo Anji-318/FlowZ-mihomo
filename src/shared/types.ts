@@ -431,6 +431,16 @@ export interface UserConfig {
   autoPrivacyMode?: boolean; // 自动进入隐私模式
   privacyPassword?: string; // 隐私模式解锁密码
   autoSwitchNode?: boolean; // 节点故障时自动切换到可用节点
+  /**
+   * 自动选优（内核 url-test）：把 proxy-selector 生成为 url-test 组，由 mihomo 按测速延迟自选出口。
+   * 与 autoSwitchNode 的关系：url-test 自己会测速+切换，故开启本项时应用层心跳换节点停用（避免两套逻辑抢 selector）。
+   * 与手动选择的关系：成员顺序仍把 selectedServerId 排首位（首轮测速前的初始出口），但出口以内核测速结果为准。
+   */
+  autoSelectFastest?: boolean;
+  /** url-test 测速间隔（秒）。越短发现坏节点越快，探测流量越大。见 shared/urltest-settings 的夹取范围。 */
+  urltestIntervalSec?: number;
+  /** url-test 切换容差（毫秒）：新最优要快过当前这么多才切，避免 87↔90ms 来回抖。 */
+  urltestToleranceMs?: number;
   interruptConnectionsOnSwitch?: boolean; // 切换节点时中断现有连接、强制在新节点重建（默认 true=切换即断旧连接；显式 false=优雅切换，现有连接保留至自然关闭）
   // §2 待应用差集：节点配置变更后是否立即重启内核应用（默认 false=OFF=进「待应用」差集、动作条一键应用/被选中时才补全；
   // true=ON=每次节点增/改/删即刻去抖重启，兼作自动订阅刷新的 auto-apply 调度器）。仅节点集/参数变更受此门控，

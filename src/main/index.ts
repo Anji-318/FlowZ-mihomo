@@ -1888,7 +1888,9 @@ if (gotTheLock) {
     );
     {
       const cfg = await configManager.loadConfig().catch(() => null);
-      if (cfg?.autoSwitchNode) {
+      // 自动选优（url-test）下出口由内核测速决定，应用层心跳换节点必须让位：两套逻辑同时写 proxy-selector
+      // 会互相覆盖（心跳把内核选出的最快节点改回手选节点），表现为「开着自动选优却总回到慢节点」。
+      if (cfg?.autoSwitchNode && !cfg?.autoSelectFastest) {
         autoSwitchService.enable();
       }
     }

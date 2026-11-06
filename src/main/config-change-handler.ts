@@ -89,7 +89,8 @@ export function registerConfigChangeListener(deps: ConfigChangeDeps): void {
       // 3. 同步自动换节点服务状态
       if (autoSwitchService) {
         const latestCfg = await configManager.loadConfig().catch(() => null);
-        if (latestCfg?.autoSwitchNode) {
+        // 同 index.ts：url-test 模式下由内核负责选优与故障跳过，心跳换节点停用（否则会覆盖内核选择）。
+        if (latestCfg?.autoSwitchNode && !latestCfg?.autoSelectFastest) {
           autoSwitchService.enable();
         } else {
           autoSwitchService.disable();

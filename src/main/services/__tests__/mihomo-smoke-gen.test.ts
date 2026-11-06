@@ -83,10 +83,41 @@ const DEPS = {
   log: () => {},
 };
 
-const SCENARIOS: Array<{ name: string; over: Partial<UserConfig>; expectTun: boolean }> = [
-  { name: 'tun-smart', over: {}, expectTun: true },
-  { name: 'system-global', over: { proxyModeType: 'systemProxy', proxyMode: 'global' }, expectTun: false },
-  { name: 'system-direct', over: { proxyModeType: 'systemProxy', proxyMode: 'direct' }, expectTun: false },
+/**
+ * 全矩阵：3 种接管方式 × 3 种路由模式，外加「自动选优」专项。
+ * 之前只覆盖了 tun+smart / system+global / system+direct，manual（仅本地）与 tun+global/direct 从未被校验过 ——
+ * 而这几条正是「换了内核后最容易悄悄坏掉」的分支（TUN 段是否存在、mode 映射、mixed-port 是否还在绑）。
+ */
+const MODE_TYPES = [
+  { type: 'tun' as const, expectTun: true },
+  { type: 'systemProxy' as const, expectTun: false },
+  { type: 'manual' as const, expectTun: false }, // 仅本地：不接管系统，只开 mixed 端口
+];
+const ROUTE_MODES = [
+  { mode: 'smart' as const, expectMihomoMode: 'rule' },
+  { mode: 'global' as const, expectMihomoMode: 'global' },
+  { mode: 'direct' as const, expectMihomoMode: 'direct' },
+];
+
+const SCENARIOS = [
+  ...MODE_TYPES.flatMap((t) =>
+    ROUTE_MODES.map((r) => ({
+      name: `${t.type}-${r.mode}`,
+      over: { proxyModeType: t.type, proxyMode: r.mode } as Partial<UserConfig>,
+      expectTun: t.expectTun,
+      expectMihomoMode: r.expectMihomoMode as string,
+    }))
+  ),
+  {
+    name: 'tun-smart-urltest',
+    over: {
+      autoSelectFastest: true,
+      urltestIntervalSec: 30,
+      urltestToleranceMs: 50,
+    } as Partial<UserConfig>,
+    expectTun: true,
+    expectMihomoMode: 'rule',
+  },
 ];
 
 /** 按平台定位仓库内的随包内核（未 fetch 时可能不存在）。 */
@@ -124,6 +155,10 @@ describe('mihomo 配置生成（结构回归）', () => {
       // 管理面：只绑 127.0.0.1 且带 secret（本地恶意进程也不能裸调 API）
       expect(cfg['external-controller']).toBe('127.0.0.1:9090');
       expect(cfg.secret).toBe('smoke-secret');
+      // 三种接管方式都必须绑本地 mixed 端口：manual（仅本地）全靠它，TUN/系统代理也用它做探针与更新借道
+      expect(cfg['mixed-port']).toBe(7890);
+      // 路由模式映射：smart→rule / global→global / direct→direct（mihomo 认的是 mode 字段）
+      expect(cfg.mode).toBe(sc.expectMihomoMode);
 
       // 模式映射：smart→rule 必须产出规则；global/direct 不应误留 rule 规则
       if (cfg.mode === 'rule') {
@@ -144,6 +179,45 @@ describe('mihomo 配置生成（结构回归）', () => {
       expect(result.warnings.join(' ')).not.toContain('ERROR');
     });
   }
+});
+
+describe('自动选优（url-test）组生成', () => {
+  it('开启后 proxy-selector 变成 url-test，参数来自客户端设置', () => {
+    const config = {
+      ...BASE,
+      autoSelectFastest: true,
+      urltestIntervalSec: 30,
+      urltestToleranceMs: 80,
+    } as UserConfig;
+    const cfg = buildMihomoConfig(config, DEPS).config as any;
+    const selector = (cfg['proxy-groups'] as any[]).find((g) => g.name === 'proxy-selector');
+
+    expect(selector.type).toBe('url-test');
+    expect(selector.url).toBe('https://www.gstatic.com/generate_204');
+    expect(selector.interval).toBe(30);
+    expect(selector.tolerance).toBe(80);
+    // lazy=false：不依赖「组被命中」才测速，起核初期就有延迟数据
+    expect(selector.lazy).toBe(false);
+    // 只有主选择器走 url-test；规则目标组仍是 select（各自钉死目标，不能自动漂移）
+    expect((cfg['proxy-groups'] as any[]).filter((g) => g.type === 'url-test')).toHaveLength(1);
+  });
+
+  it('非法/越界参数被夹取，不会把 NaN 写进内核配置', () => {
+    const cfg = buildMihomoConfig(
+      { ...BASE, autoSelectFastest: true, urltestIntervalSec: NaN, urltestToleranceMs: 999999 } as UserConfig,
+      DEPS
+    ).config as any;
+    const selector = (cfg['proxy-groups'] as any[]).find((g) => g.name === 'proxy-selector');
+    expect(selector.interval).toBe(60); // 默认
+    expect(selector.tolerance).toBe(2000); // 上限
+  });
+
+  it('未开启时保持 select（零行为变化）', () => {
+    const cfg = buildMihomoConfig({ ...BASE } as UserConfig, DEPS).config as any;
+    const selector = (cfg['proxy-groups'] as any[]).find((g) => g.name === 'proxy-selector');
+    expect(selector.type).toBe('select');
+    expect(selector.interval).toBeUndefined();
+  });
 });
 
 describe('mihomo 配置生成（真实内核校验）', () => {

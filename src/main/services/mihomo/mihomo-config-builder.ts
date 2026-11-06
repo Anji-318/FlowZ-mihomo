@@ -30,6 +30,7 @@ import {
 } from '../../../shared/region-routing';
 import { isIpCidr, bypassLanCidrs, effectiveBypassLan } from '../../../shared/system-proxy-bypass';
 import { resolveTunMtu, resolveTunStack } from '../../../shared/tun-defaults';
+import { resolveUrltestSettings } from '../../../shared/urltest-settings';
 import { resolveWinTunInterfaceName } from '../../../shared/tun-interface';
 import type { RuleCondition, ServerConfig, UserConfig } from '../../../shared/types';
 import { getRuleSetRuntimeDir } from '../builtin-geo-rulesets';
@@ -138,16 +139,40 @@ export function buildMihomoConfig(config: UserConfig, deps: MihomoBuildDeps): Mi
   }
 
   const groups: Record<string, unknown>[] = [];
-  const proxySelectorMembers = nodeNames.length > 0 ? [...nodeNames, 'DIRECT'] : ['DIRECT'];
-  groups.push({
-    name: 'proxy-selector',
-    type: 'select',
-    proxies: proxySelectorMembers,
-  });
-  // select 组默认选中第一项：把选中节点排到首位（热切换前即生效）
-  if (selectedName) {
-    const g = groups[0] as { proxies: string[] };
-    g.proxies = [selectedName, ...g.proxies.filter((p) => p !== selectedName)];
+  // 成员顺序：选中节点置顶。select 组「第一项即默认选中」；url-test 组在首轮测速完成前也以 members[0]
+  // 为初始出口，故两种模式下这段排序都有意义（也是订阅刷新后「不留恋旧节点」的兜底）。
+  const baseMembers = nodeNames.length > 0 ? [...nodeNames, 'DIRECT'] : ['DIRECT'];
+  const proxySelectorMembers = selectedName
+    ? [selectedName, ...baseMembers.filter((p) => p !== selectedName)]
+    : baseMembers;
+
+  // 自动选优：proxy-selector 生成为 mihomo 的 url-test 组 —— 内核按测速延迟自选成员并周期复测，
+  // 坏节点在下一轮测速即被跳过，不需要应用层心跳（AutoSwitchService 在此模式下停用，避免两边抢 selector）。
+  // 没有任何节点时仍走 select（url-test 只有 DIRECT 一个成员没有意义，且部分内核版本会警告）。
+  // direct（全局直连）模式下出口组不被使用，url-test 仍会按 interval 对每个节点发探测 —— 纯浪费流量，
+  // 且用户看不到任何收益。故仅在会真正走代理的模式下生成 url-test；切回 smart/global 时配置会重新生成。
+  const routeMode = config.proxyMode === 'global' ? 'global' : config.proxyMode === 'direct' ? 'direct' : 'rule';
+  const autoFastest =
+    config.autoSelectFastest === true && nodeNames.length > 0 && routeMode !== 'direct';
+  if (autoFastest) {
+    const rt = resolveUrltestSettings(config);
+    groups.push({
+      name: 'proxy-selector',
+      type: 'url-test',
+      proxies: proxySelectorMembers,
+      url: rt.url,
+      interval: rt.interval,
+      tolerance: rt.tolerance,
+      // lazy=false：不依赖「组是否被命中」才测速。用户要的是「随时都在选最快的」，
+      // 起核初期/仅本地代理时也要立刻有延迟数据，而不是先按 members[0] 跑到下一轮。
+      lazy: false,
+    });
+  } else {
+    groups.push({
+      name: 'proxy-selector',
+      type: 'select',
+      proxies: proxySelectorMembers,
+    });
   }
 
   // 规则目标组（rule-sel-<n>）：action=proxy + targetServerId 的规则 / 应用规则

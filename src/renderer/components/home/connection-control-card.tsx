@@ -208,7 +208,13 @@ export function ConnectionControlCard() {
     // pendingChanges 在 handler 内即时读取（getState），不订阅——否则每次 configChanged 广播都重渲整卡。
     const willRestart = willRestartOnSelect(useAppStore.getState().pendingChanges, serverId);
     try {
-      await saveConfig({ ...config, selectedServerId: serverId });
+      // 自动选优（url-test）下手动选节点 = 用户接管：必须同时关掉自动模式，
+      // 否则内核会在下一轮测速把出口切回去，用户会觉得「点了没用」。
+      await saveConfig({
+        ...config,
+        selectedServerId: serverId,
+        ...(config.autoSelectFastest ? { autoSelectFastest: false } : {}),
+      });
       // 选节点不弹「已切换」成功 toast（用户反馈：picker 即时反映选择即为反馈、无需提醒；同接管方式 toast 移除理由）。
       if (willRestart) toast.info(t('home.selectPendingNodeRestartHint'));
     } catch (error) {
@@ -374,6 +380,17 @@ export function ConnectionControlCard() {
                 selectedServerId={selectedServerId ?? undefined}
                 onSelect={handleServerChange}
               />
+              {config?.autoSelectFastest === true && (
+                <span
+                  className="text-[11px] whitespace-nowrap text-[hsl(var(--flow-hi))]"
+                  title={t(
+                    'home.autoSelectHint',
+                    '已开启自动选优：出口由内核按测速结果决定；手动选择节点会关闭该模式'
+                  )}
+                >
+                  {t('home.autoSelectBadge', '自动选优')}
+                </span>
+              )}
               {servers.length > 0 && (
                 <>
                   <button

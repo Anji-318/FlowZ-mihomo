@@ -1140,6 +1140,12 @@ export class ProxyManager extends EventEmitter implements IProxyManager {
    * proxy-selector 成功后再 reassert rule-sel（管理 API 已就绪，rule-sel 通常首轮即成）。
    */
   private async reassertSelectorSelection(config: UserConfig): Promise<void> {
+    // 自动选优（url-test）：出口由内核按测速结果自己决定。这里若继续 PUT selectedServerId，会把内核刚选出的
+    // 最快节点覆盖回「用户上次手选的节点」，且每次起核/重载都会发生 —— url-test 等于白配。故只对账规则组。
+    if ((this.currentConfig ?? config).autoSelectFastest === true) {
+      await this.reassertRuleSelectors(config);
+      return;
+    }
     // 阶段 1：proxy-selector（带重试，等管理 API 就绪）
     for (let i = 0; i < 10; i++) {
       if (!this.singboxProcess && !this.singboxPid) return; // 已停止则放弃
