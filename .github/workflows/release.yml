@@ -17,6 +17,11 @@ on:
         description: '发布版本号（如 4.5.1，无需 v 前缀；填已存在的版本号 = 覆盖该版本）'
         required: true
         type: string
+      allow_downgrade:
+        description: '允许发布低于当前 package.json 的版本（仅在确需回退时勾选）'
+        required: false
+        type: boolean
+        default: false
 
 # 发布串行化：两个 Release 同时跑会争抢 main 的版本提交与同名 tag。
 # 不 cancel：已开始的构建跑完再让下一个开始，避免留下半个 Release。
@@ -58,6 +63,19 @@ jobs:
             exit 1
           fi
           echo "version=$V" >> "$GITHUB_OUTPUT"
+          # 防误降级：输入低于当前 package.json 版本时直接拒绝（历史教训：误填 4.4.8 把 4.5.0 降级，
+          # main 的版本号被改小，应用内更新检查再也看不到「新版本」）。确需回退时才允许显式勾选。
+          CURRENT="$(node -p "require('./package.json').version")"
+          if [ "$V" != "$CURRENT" ]; then
+            LOWER="$(printf '%s\n%s\n' "$V" "$CURRENT" | sort -V | head -1)"
+            if [ "$LOWER" = "$V" ]; then
+              if [ "${{ inputs.allow_downgrade }}" != "true" ]; then
+                echo "::error::输入版本 $V 低于当前 package.json 版本 $CURRENT。若确实要回退，请勾选 allow_downgrade 后重跑。"
+                exit 1
+              fi
+              echo "::warning::已允许版本回退：$CURRENT → $V"
+            fi
+          fi
           # --allow-same-version：相同版本号重跑时 npm version 不报错（覆盖发布语义的核心）。
           npm version "$V" --no-git-tag-version --allow-same-version
           echo "本次发布版本：$V"
@@ -87,7 +105,7 @@ jobs:
         include:
           - os: windows-2022
             platform: win
-          - os: macos-14
+          - os: macos-latest
             platform: mac
           - os: ubuntu-latest
             platform: linux
