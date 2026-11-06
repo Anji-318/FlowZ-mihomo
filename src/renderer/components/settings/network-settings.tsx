@@ -807,10 +807,17 @@ export function NetworkSettings() {
         </div>
         <Srow
           label={t('settings.advanced.autoSwitchNode')}
-          desc={t('settings.advanced.autoSwitchNodeDesc')}
+          desc={
+            config.autoSelectFastest === true
+              ? t('settings.advanced.autoSwitchNodeSuperseded')
+              : t('settings.advanced.autoSwitchNodeDesc')
+          }
         >
+          {/* 自动选优开启时本开关被接管（主进程已停用 AutoSwitchService）：置灰而不是隐藏，
+              让用户知道这个能力还在、只是暂时由 url-test 负责，关掉自动选优即恢复。 */}
           <Swt
             checked={config.autoSwitchNode === true}
+            disabled={config.autoSelectFastest === true}
             onChange={(c) => setBool('autoSwitchNode', c)}
           />
         </Srow>

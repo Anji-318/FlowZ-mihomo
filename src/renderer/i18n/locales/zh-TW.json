@@ -700,6 +700,7 @@
       },
       "autoSwitchNode": "節點故障自動切換",
       "autoSwitchNodeDesc": "當目前代理連線失敗時，自動切換到可用節點",
+      "autoSwitchNodeSuperseded": "自動選優已接管：由核心負責測速與故障跳過，本開關暫時不生效（關閉自動選優即恢復）",
       "autoSelectFastest": "自動選擇最低延遲節點",
       "autoSelectFastestDesc": "由核心依測速結果自動切換出口（url-test）。開啟後「節點故障自動切換」停用——兩套邏輯會互相覆蓋；壞節點會在下一輪測速被跳過，手動選擇僅作為初始出口。",
       "urltestInterval": "測速間隔",

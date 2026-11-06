@@ -700,6 +700,7 @@
       },
       "autoSwitchNode": "Auto-Switch Node on Failure",
       "autoSwitchNodeDesc": "Automatically switch to an available node if the current proxy connection fails",
+      "autoSwitchNodeSuperseded": "Superseded by auto-select: the core handles latency tests and skipping dead nodes; this toggle has no effect until auto-select is turned off",
       "autoSelectFastest": "Auto-select lowest-latency node",
       "autoSelectFastestDesc": "Let the core pick the exit by latency (url-test). This supersedes the failover heartbeat — running both would fight over the selector. Dead nodes are skipped on the next test round; manual selection only seeds the initial exit.",
       "urltestInterval": "Test interval",
