@@ -329,6 +329,20 @@ export class MihomoApiClient {
   // ---------- clash 等价管理方法 ----------
 
   /**
+   * 触发一次整组测速（GET /group/{group}/delay）。
+   * url-test 组在刚起核时停在 members[0]，要等内核自己跑完一轮才可能换；这里主动催一轮，
+   * 消除「启动后几分钟出口不动」的空窗（实测会卡住，手动催一次即恢复正常轮询）。
+   */
+  async testGroup(groupTag: string, url: string, timeoutMs = 5000): Promise<void> {
+    await this.request(
+      'GET',
+      `/group/${encodeURIComponent(groupTag)}/delay?url=${encodeURIComponent(url)}&timeout=${timeoutMs}`,
+      undefined,
+      15000
+    );
+  }
+
+  /**
    * 读组的当前选中成员（GET /proxies/{group} → { now, type, all }）。
    * url-test 组由内核自选，"now" 才是真实出口 —— 界面上的 selectedServerId 只是「手选/初始」值，
    * 两者在自动选优模式下会分叉（用户看到出口没变、实际已经切了）。

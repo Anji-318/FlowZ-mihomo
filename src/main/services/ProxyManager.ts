@@ -34,6 +34,7 @@ import { type ISystemDnsManager } from './SystemDnsManager';
 import { DnsInterfaceWatcher, shouldReconcileDns } from './DnsInterfaceWatcher';
 import { flushOsDnsCache } from './os-dns-flush';
 import { localProxyPort, controlApiPort } from '../../shared/proxy-ports';
+import { DEFAULT_SPEED_TEST_URL } from '../../shared/speed-test';
 import { effectiveBypassLan } from '../../shared/system-proxy-bypass';
 import { isDirectSelection, resolveGlobalExitTag } from '../../shared/direct-selection';
 import { parseDefaultGateway, parseScutilRouter } from '../../shared/default-route';
@@ -1158,6 +1159,12 @@ export class ProxyManager extends EventEmitter implements IProxyManager {
     // 最快节点覆盖回「用户上次手选的节点」，且每次起核/重载都会发生 —— url-test 等于白配。故只对账规则组。
     if ((this.currentConfig ?? config).autoSelectFastest === true) {
       await this.reassertRuleSelectors(config);
+      // url-test 组起核时停在 members[0]（= 手选节点），内核要跑完一轮才可能换；实测会出现
+      // 「启动后几分钟出口不动」的观感（历史采样在走、now 不变）。主动催一轮整组测速消除该窗口。
+      // fire-and-forget：190 个成员约 5s，绝不阻塞启动；失败也只是回到「等内核自己跑」。
+      void this.tailscaleApiClient
+        ?.testGroup('proxy-selector', DEFAULT_SPEED_TEST_URL)
+        .catch(() => {});
       return;
     }
     // 阶段 1：proxy-selector（带重试，等管理 API 就绪）
