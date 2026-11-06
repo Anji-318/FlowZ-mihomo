@@ -12,6 +12,7 @@ import { releaseWindowMemory } from './window-memory';
 import { ServerConfig, ProxyMode, ProxyModeType, SubscriptionConfig } from '../../shared/types';
 import { groupServersBySubscription } from '../../shared/server-grouping';
 import { sortServersByLatency } from '../../shared/server-latency-sort';
+import { REPO_RELEASES_URL } from '../../shared/repo';
 import { mt } from '../i18n';
 import { DIRECT_SERVER_ID, isDirectSelection } from '../../shared/direct-selection';
 import { IPC_CHANNELS } from '../../shared/ipc-channels';
@@ -166,7 +167,7 @@ export class TrayManager implements ITrayManager {
 
       // darwin 传 guid（= NSStatusItem.autosaveName）保住用户拖放的菜单栏位置；win32/linux 必须不传，见 MACOS_TRAY_GUID。
       this.tray = process.platform === 'darwin' ? new Tray(icon, MACOS_TRAY_GUID) : new Tray(icon);
-      this.tray.setToolTip('FlowZ Clash');
+      this.tray.setToolTip('FlowZ Mihomo');
 
       // 托盘点击行为：
       // macOS —— 单击弹出菜单（setContextMenu 原生行为，再点别处自动收回），不直接开主窗口；
@@ -597,7 +598,7 @@ export class TrayManager implements ITrayManager {
       this.onCheckUpdate();
     } else {
       // 默认行为：打开 GitHub releases 页面
-      shell.openExternal('https://github.com/dododook/FlowZ/releases');
+      shell.openExternal(REPO_RELEASES_URL);
     }
   }
 

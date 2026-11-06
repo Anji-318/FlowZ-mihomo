@@ -1,28 +1,35 @@
 name: Release
 
-# 两种触发：
-#   1) push tag v*        —— 传统路径：tag 里的版本号即发布版本号。
-#   2) workflow_dispatch  —— 手动路径：输入版本号（无需 v 前缀），流水线自动把 package.json
-#      bump 到该版本、提交回 main、强制打/移同名 tag 后构建发布。相同版本号重复运行时，
-#      tag 被强制移到新 commit、旧 Release 先删后建 → 产物整体覆盖旧版本，不存在「同号两版并存」。
+# 只允许手动触发：在 Actions 页面点「Run workflow」，填版本号（如 4.5.1）后构建三平台安装包并发布。
+#
+# 为什么去掉 tag push 触发：本项目要求「发布 = 一次显式决定」。tag 可被本地误推、也可被脚本连推多个，
+# 一旦触发就会自动 bump 版本、改 main、发 Release —— 这些都该由人确认版本号后再发生。
+#
+# 覆盖语义（输入已存在的版本号）：
+#   1) package.json 用 --allow-same-version bump（版本没变也能跑通）；
+#   2) tag 用 -f 强制移到当前 commit；
+#   3) 同名 Release 先删后建，附件整体替换（overwrite_files 双保险）。
+#   → 不存在「同号两版并存」，也不会因为「版本已存在」而失败。
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
     inputs:
       version:
-        description: '发布版本号（如 4.3.2，无需 v 前缀；与已有版本相同则覆盖该版本）'
+        description: '发布版本号（如 4.5.1，无需 v 前缀；填已存在的版本号 = 覆盖该版本）'
         required: true
         type: string
+
+# 发布串行化：两个 Release 同时跑会争抢 main 的版本提交与同名 tag。
+# 不 cancel：已开始的构建跑完再让下一个开始，避免留下半个 Release。
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 permissions:
   contents: write # prepare 推 version bump commit + tag；create-release 删/建 Release
 
 jobs:
-  # 仅手动触发时运行：版本号落库 + 打 tag。tag push 路径下版本号已在 tag 与 package.json 里，跳过。
+  # 版本号落库 + 打 tag。所有下游 job 都从这里的 output 取版本，保证「构建的就是输入的版本」。
   prepare:
-    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.v.outputs.version }}
@@ -33,20 +40,27 @@ jobs:
           ref: main
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
       - name: Validate & apply version
         id: v
         run: |
           set -euo pipefail
           V="${{ inputs.version }}"
           V="${V#v}"
-          # 严格 semver（允许预发布后缀），拒绝 1.2 / latest 之类的脏输入进 package.json。
+          V="$(echo "$V" | tr -d '[:space:]')"
+          # 严格 semver（允许预发布后缀），拒绝 1.2 / latest / 空 之类的脏输入进 package.json。
           if ! echo "$V" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
-            echo "::error::版本号「$V」不合法，须为 x.y.z（可选 -预发布后缀），如 4.3.2"
+            echo "::error::版本号「$V」不合法，须为 x.y.z（可选 -预发布后缀），如 4.5.1"
             exit 1
           fi
           echo "version=$V" >> "$GITHUB_OUTPUT"
           # --allow-same-version：相同版本号重跑时 npm version 不报错（覆盖发布语义的核心）。
           npm version "$V" --no-git-tag-version --allow-same-version
+          echo "本次发布版本：$V"
 
       - name: Commit version bump & force tag
         run: |
@@ -63,9 +77,8 @@ jobs:
           git push -f origin "v${V}"
 
   release:
-    # 手动路径等 prepare 打完 tag 再构建（确保构建的就是 tag 指向的代码 + 新版本号）。
     needs: prepare
-    if: always() && (github.event_name != 'workflow_dispatch' || needs.prepare.result == 'success')
+    if: needs.prepare.result == 'success'
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -82,31 +95,25 @@ jobs:
     steps:
       - name: Resolve version
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            V="${{ needs.prepare.outputs.version }}"
-          else
-            V="${GITHUB_REF#refs/tags/v}"
-          fi
-          echo "VERSION=$V" >> "$GITHUB_ENV"
-          echo "发布版本：$V"
+          echo "VERSION=${{ needs.prepare.outputs.version }}" >> "$GITHUB_ENV"
+          echo "发布版本：${{ needs.prepare.outputs.version }}"
         shell: bash
 
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          # 手动路径：checkout 刚被 prepare 强制移动的 tag；tag push 路径：checkout 触发 ref 本身。
-          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/v{0}', needs.prepare.outputs.version) || github.ref }}
+          # checkout prepare 刚打好的 tag：构建内容 = 该 tag 指向的提交（含版本 bump）。
+          ref: refs/tags/v${{ needs.prepare.outputs.version }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '26'
+          node-version-file: '.nvmrc'
           cache: 'npm'
 
-      # 提权 helper 二进制不入库（.gitignore），由 build:helper 现编现打：mac(helper/) + win(helper-win/)。
-      # 必须在 mac 与 win 两个 runner 都装 Go，否则该平台 package 缺 helper 二进制 → 安装提权助手「二进制缺失」(issue #57)。
-      - name: Setup Go (提权 helper, mac + win)
-        if: matrix.platform == 'mac' || matrix.platform == 'win'
+      # 三个平台都要 Go：build-helper.mjs 会交叉编译 mac/win/linux 三套 helper，而 package:linux 同样调用它；
+      # REQUIRE_HELPER=1 时缺工具链会直接失败（避免静默发出无 helper 的包）。
+      - name: Setup Go (提权 helper, all platforms)
         uses: actions/setup-go@v5
         with:
           go-version-file: helper/go.mod
@@ -127,6 +134,7 @@ jobs:
       - name: Build application
         run: npm run build
 
+      # package:* 链路已内置 fetch:core（双 sha256 校验）+ verify:config（真核 mihomo -t）。
       - name: Package application
         run: npm run package:${{ matrix.platform }}
         env:
@@ -138,16 +146,14 @@ jobs:
       - name: Create DMG (macOS, arm64 + x64)
         if: matrix.platform == 'mac'
         run: |
-          # electron-builder.json mac.target.arch = [arm64, x64] → 两个架构的 .app 都已构建，但
-          # 多架构下 electron-builder 会把其中一个架构放进【无后缀】的 dist-package/mac/
-          # （v4.1.0 实测：x64 落 dist-package/mac、arm64 落 dist-package/mac-arm64），各自含对应架构的提权 helper。
-          # 故此处按 arch 后缀目录优先、回退无后缀目录，并用 lipo 校验确属目标架构；缺则【报错失败】（不再静默跳过，
-          # 避免 v4.1.0 那样绿灯却漏发 mac-x64 包）。
+          # electron-builder 多架构下会把其中一个架构放进【无后缀】的 dist-package/mac/，
+          # 另一个放 dist-package/mac-<arch>/。故按 arch 后缀目录优先、回退无后缀目录，并用 lipo
+          # 校验确属目标架构；缺则【报错失败】（避免绿灯却漏发某个架构）。
           for ARCH in arm64 x64; do
-            DMG_PATH="dist-package/FlowZ Clash-${VERSION}-mac-${ARCH}.dmg"
+            DMG_PATH="dist-package/FlowZ Mihomo-${VERSION}-mac-${ARCH}.dmg"
             case "$ARCH" in arm64) WANT=arm64 ;; x64) WANT=x86_64 ;; esac
             APP_PATH=""
-            for CAND in "dist-package/mac-${ARCH}/FlowZ Clash.app" "dist-package/mac/FlowZ Clash.app"; do
+            for CAND in "dist-package/mac-${ARCH}/FlowZ Mihomo.app" "dist-package/mac/FlowZ Mihomo.app"; do
               [ -d "$CAND" ] || continue
               EXE=$(ls "$CAND"/Contents/MacOS/* 2>/dev/null | head -1)
               if [ -n "$EXE" ] && lipo -archs "$EXE" 2>/dev/null | tr ' ' '\n' | grep -qx "$WANT"; then
@@ -155,7 +161,7 @@ jobs:
               fi
             done
             if [ -z "$APP_PATH" ]; then
-              echo "::error::找不到 ${ARCH}(${WANT}) 架构的 FlowZ Clash.app（查了 dist-package/mac-${ARCH}/ 与 dist-package/mac/）——发布将缺 mac-${ARCH} 包，请检查 package:mac 的 electron-builder --${ARCH} 产出。"
+              echo "::error::找不到 ${ARCH}(${WANT}) 架构的 FlowZ Mihomo.app（查了 dist-package/mac-${ARCH}/ 与 dist-package/mac/）——发布将缺 mac-${ARCH} 包，请检查 package:mac 的 electron-builder --${ARCH} 产出。"
               exit 1
             fi
             echo "Using ${ARCH} app bundle: $APP_PATH"
@@ -166,11 +172,10 @@ jobs:
             TEMP_DIR=$(mktemp -d)
             cp -R "$APP_PATH" "$TEMP_DIR/"
             ln -s /Applications "$TEMP_DIR/Applications"
-            # ad-hoc 签名（无付费 Developer ID/公证）→ 从下载的 DMG 拖出的 app 带 quarantine，
-            # macOS 首次打开报「已损坏，应移到废纸篓」，且右键→打开无效、须 xattr -cr。
-            # DMG 内附首次打开引导（中英），教用户清除隔离属性。文件名带序号让它排在 app 前、更显眼。
+            # ad-hoc 签名（无付费 Developer ID/公证）→ 从 DMG 拖出的 app 带 quarantine，首次打开报「已损坏」，
+            # 须 xattr -cr。DMG 内附首次打开引导（中英），排在 app 前更显眼。
             cp "build/macos-dmg-open-guide.txt" "$TEMP_DIR/0 首次打开必读 READ ME FIRST.txt"
-            hdiutil create -volname "FlowZ Clash ${VERSION} (${ARCH})" \
+            hdiutil create -volname "FlowZ Mihomo ${VERSION} (${ARCH})" \
               -srcfolder "$TEMP_DIR" \
               -ov -format UDZO \
               "$DMG_PATH"
@@ -191,24 +196,19 @@ jobs:
 
   create-release:
     needs: [prepare, release]
-    if: always() && needs.release.result == 'success' && (github.event_name != 'workflow_dispatch' || needs.prepare.result == 'success')
+    if: needs.release.result == 'success'
     runs-on: ubuntu-latest
 
     steps:
       - name: Resolve version
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            V="${{ needs.prepare.outputs.version }}"
-          else
-            V="${GITHUB_REF#refs/tags/v}"
-          fi
-          echo "VERSION=$V" >> "$GITHUB_ENV"
+          echo "VERSION=${{ needs.prepare.outputs.version }}" >> "$GITHUB_ENV"
         shell: bash
 
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/v{0}', needs.prepare.outputs.version) || github.ref }}
+          ref: refs/tags/v${{ needs.prepare.outputs.version }}
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -218,8 +218,19 @@ jobs:
       - name: Display structure of downloaded files
         run: ls -R artifacts
 
-      # 同版本号覆盖的关键步骤：同名 Release 已存在则整体删除（含全部旧附件与 notes），
-      # 下一步重建同名 Release 并挂新产物。tag 本身在 prepare 阶段已被 -f 移到新 commit。
+      # 生成 SHA256SUMS：应用自更新的完整性锚是 GitHub API 的 asset.digest，但
+      #   ① 手工下载的用户没有 API 摘要可查；② 镜像站可能被投毒，用户需要独立核对手段。
+      - name: Generate SHA256SUMS
+        run: |
+          set -euo pipefail
+          cd artifacts
+          find . -type f \( -name '*.exe' -o -name '*.dmg' -o -name '*.AppImage' -o -name '*.deb' \) \
+            -exec sha256sum {} + | sed 's#\./##' | sort -k2 > "$GITHUB_WORKSPACE/SHA256SUMS.txt"
+          echo "--- SHA256SUMS ---"
+          cat "$GITHUB_WORKSPACE/SHA256SUMS.txt"
+
+      # 覆盖语义的关键一步：同名 Release 已存在则整体删除（含旧附件与 notes），下一步重建并挂新产物。
+      # tag 已在 prepare 阶段被 -f 移到新 commit。
       - name: Delete existing release with same tag (overwrite)
         run: |
           if gh release view "v${VERSION}" >/dev/null 2>&1; then
@@ -232,22 +243,26 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create GitHub Release
-        # Release notes 单一来源：generate_release_notes 由 GitHub 自动从 PR 列表生成「## What's Changed」+
-        # Full Changelog。不再额外注入 body（曾与 generate_release_notes 叠加导致两个 ## What's Changed 且
-        # 与 PR 标题重复）；无需维护 CHANGELOG.md。
-        # overwrite_files: 同名附件覆盖上传（与上一步「先删后建」双保险，删失败时仍能覆盖文件）。
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ env.VERSION }}
           name: Release ${{ env.VERSION }}
-          draft: true
+          # 直接发布（非 draft）：应用内的更新检查读的是已发布 Release，draft 对其不可见。
+          draft: false
           prerelease: false
-          generate_release_notes: true
+          generate_release_notes: false
+          body: |
+            FlowZ Mihomo ${{ env.VERSION }}（mihomo 内核）
+
+            - 内核：mihomo ${{ env.VERSION }} 构建集（版本以仓库 `src/shared/core-manifest.json` 为准）
+            - 该版本安装包的 sha256 见附件 `SHA256SUMS.txt`，安装前请核对
+            - 与上游 sing-box 版不兼容：请勿混装（appId `com.flowz.mihomo`）
           overwrite_files: true
           files: |
             artifacts/**/*.exe
             artifacts/**/*.dmg
             artifacts/**/*.AppImage
             artifacts/**/*.deb
+            SHA256SUMS.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

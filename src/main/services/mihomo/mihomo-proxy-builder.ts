@@ -12,6 +12,7 @@
  * 静默降级不下发（配置构建器统一记 warning）。
  */
 import type { ServerConfig } from '../../../shared/types';
+import { protocolCapability } from '../../../shared/core-capabilities';
 
 /** mihomo proxy 条目（宽松形状，字段按协议拼装）。 */
 export type MihomoProxy = Record<string, unknown>;
@@ -35,25 +36,16 @@ export function mihomoSafeName(name: string): string {
   return RESERVED_NAMES.has(trimmed.toUpperCase()) ? `node-${trimmed}` : trimmed;
 }
 
-/** 节点协议是否被 mihomo 内核支持（不支持时给中文原因，供 UI/日志展示）。 */
+/**
+ * 节点协议是否被 mihomo 内核支持（不支持时给中文原因，供 UI/日志展示）。
+ *
+ * 判定表已上提到 `shared/core-capabilities`：渲染端协议选择器要置灰/提示同一套结论，
+ * 放在 main 里它拿不到（且会诱发「UI 一份、构建器一份」的漂移）。本函数只做 ServerConfig → 参数适配。
+ */
 export function mihomoUnsupportedReason(server: ServerConfig): string | null {
-  switch (server.protocol) {
-    case 'naive':
-      return 'Naive 协议依赖 sing-box + cronet，mihomo 内核不支持';
-    case 'ssh':
-      return 'SSH 出站是 sing-box 专有，mihomo 内核不支持';
-    case 'tailscale':
-      return 'Tailscale 组网是 sing-box 专有，mihomo 内核不支持';
-    case 'custom':
-      return '自定义协议为 sing-box raw-JSON 透传，mihomo 内核不支持';
-    case 'snell':
-      if (server.snellSettings?.version === 6) {
-        return 'Snell v6 仅 sing-box 支持，mihomo 内核暂不支持（v4 可用）';
-      }
-      return null;
-    default:
-      return null;
-  }
+  return (
+    protocolCapability(server.protocol, { snellVersion: server.snellSettings?.version }).reason ?? null
+  );
 }
 
 export function isProtocolSupportedByMihomo(server: ServerConfig): boolean {

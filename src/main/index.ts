@@ -28,6 +28,7 @@ import { registerIconProtocolSchemes, registerIconProtocol } from './icon-protoc
 import { notifyUser, setDesktopNotificationsEnabled } from './notify-user';
 import { mt, setMainLanguage } from './i18n';
 import { runCliEarlyExit } from './cli-early-exit';
+import { migrateLegacyUserData } from './utils/user-data-migration';
 import { selectPortableStaleOld } from './services/update-install-script';
 import { SubscriptionService } from './services/SubscriptionService';
 import { registerPrivacyHandlers } from './ipc/handlers/privacy-handlers';
@@ -141,6 +142,16 @@ runCliEarlyExit({
 // 初始化用户数据路径（必须在 app.requestSingleInstanceLock() 之前调用）
 // 以确保便携模式下，锁文件和所有 Electron 数据都重定向到正确的目录
 initUserDataPath();
+
+// 旧产品名数据迁移（一次性、幂等）：本 fork 与上游共用过 userData（%APPDATA%/flowz）。产品名改为
+// 「FlowZ Mihomo」后目录随之改名，若不迁移，老用户升级会「节点/规则/隐私锁口令全部消失」。
+// 必须在下面任何 getConfigPath() 读取之前完成，且失败绝不阻断启动（最坏退回全新配置）。
+const legacyMigration = migrateLegacyUserData();
+if (legacyMigration.migrated) {
+  console.log(
+    `[migration] 已从 ${legacyMigration.from} 迁移用户数据 → ${legacyMigration.to}（${legacyMigration.copied.join(', ')}）`
+  );
+}
 
 // 图形兼容逃生门（用户自救）：hardwareAcceleration 被显式关闭（=== false）时禁用硬件加速，改用软件渲染。
 // app.disableHardwareAcceleration() 必须在 app ready **之前**调用（Electron 硬约束），此时 ConfigManager 尚未
@@ -741,7 +752,7 @@ async function createWindow(forceShow = false) {
     height: windowHeight,
     minWidth: 800,
     minHeight: 720,
-    title: 'FlowZ Clash',
+    title: 'FlowZ Mihomo',
     icon: resourceManager.getAppIconPath(),
     show: false, // 先不显示，等待加载完成
     backgroundColor: useMacTransparent ? '#00000000' : solidBackground,
@@ -1421,7 +1432,7 @@ if (gotTheLock) {
     logManager.addLog('info', 'Application started', 'Main');
 
     // Windows toast 前置：设 AppUserModelID（与 electron-builder appId 一致），提升 portable 版通知可靠性（无 NSIS 注册时）。
-    if (process.platform === 'win32') app.setAppUserModelId('com.flowz.app');
+    if (process.platform === 'win32') app.setAppUserModelId('com.flowz.mihomo');
     // 主进程 i18n 初值先按系统偏好兜底（config 加载完成前的极短窗口，覆盖任何早于配置读取的 mt() 调用）。
     setMainLanguage(resolveAutoLanguage(getPreferredSystemLanguagesSafe()));
     // 桌面通知总开关初始同步（运行期变更由 config-change-handler 同步）。await 确保 enabled 在后续启动步骤

@@ -23,13 +23,13 @@ const MESSAGES = {
   // —— CLI / 非 GUI 早退（cli-early-exit，main 进程顶层；headless 提示走系统 locale，禁硬编码） ——
   headlessNoDisplay: {
     'zh-CN':
-      'FlowZ Clash 是图形界面应用，需要桌面环境运行；当前未检测到显示服务（DISPLAY/Wayland）。查看版本请运行：flowz --version',
+      'FlowZ Mihomo 是图形界面应用，需要桌面环境运行；当前未检测到显示服务（DISPLAY/Wayland）。查看版本请运行：flowz --version',
     'zh-TW':
-      'FlowZ Clash 是圖形介面應用，需要桌面環境執行；目前未偵測到顯示服務（DISPLAY/Wayland）。查看版本請執行：flowz --version',
+      'FlowZ Mihomo 是圖形介面應用，需要桌面環境執行；目前未偵測到顯示服務（DISPLAY/Wayland）。查看版本請執行：flowz --version',
     'en-US':
-      'FlowZ Clash is a GUI application and needs a desktop environment; no display server (DISPLAY/Wayland) was detected. To check the version, run: flowz --version',
-    ru: 'FlowZ Clash — графическое приложение, которому нужна среда рабочего стола; сервер отображения (DISPLAY/Wayland) не обнаружен. Чтобы узнать версию, выполните: flowz --version',
-    fa: 'FlowZ Clash یک برنامهٔ گرافیکی است و به محیط دسکتاپ نیاز دارد؛ هیچ سرور نمایشی (DISPLAY/Wayland) شناسایی نشد. برای دیدن نسخه اجرا کنید: flowz --version',
+      'FlowZ Mihomo is a GUI application and needs a desktop environment; no display server (DISPLAY/Wayland) was detected. To check the version, run: flowz --version',
+    ru: 'FlowZ Mihomo — графическое приложение, которому нужна среда рабочего стола; сервер отображения (DISPLAY/Wayland) не обнаружен. Чтобы узнать версию, выполните: flowz --version',
+    fa: 'FlowZ Mihomo یک برنامهٔ گرافیکی است و به محیط دسکتاپ نیاز دارد؛ هیچ سرور نمایشی (DISPLAY/Wayland) شناسایی نشد. برای دیدن نسخه اجرا کنید: flowz --version',
   },
   // —— 本地导入文件对话框（subscription-handlers，dialog.showOpenDialog title/filters 跟随系统语言） ——
   localImportPickTitle: {
@@ -55,12 +55,12 @@ const MESSAGES = {
   },
   // —— Windows 便携自更新覆盖失败提示（update-install-script VBS MsgBox；路径由 VBS 拼接，故末尾留冒号） ——
   portableUpdateManualReplace: {
-    'zh-CN': 'FlowZ Clash 自动更新未能替换便携程序。新版已下载到下方路径，请手动替换：',
-    'zh-TW': 'FlowZ Clash 自動更新未能替換便攜程式。新版已下載到下方路徑，請手動替換：',
+    'zh-CN': 'FlowZ Mihomo 自动更新未能替换便携程序。新版已下载到下方路径，请手动替换：',
+    'zh-TW': 'FlowZ Mihomo 自動更新未能替換便攜程式。新版已下載到下方路徑，請手動替換：',
     'en-US':
-      'FlowZ Clash auto-update could not replace the portable executable. The new version was downloaded to the path below — please replace it manually:',
-    ru: 'FlowZ Clash не смог заменить переносимый файл при автообновлении. Новая версия загружена по пути ниже — замените её вручную:',
-    fa: 'به‌روزرسانی خودکار FlowZ Clash نتوانست فایل قابل‌حمل را جایگزین کند. نسخهٔ جدید در مسیر زیر دانلود شد — لطفاً به‌صورت دستی جایگزین کنید:',
+      'FlowZ Mihomo auto-update could not replace the portable executable. The new version was downloaded to the path below — please replace it manually:',
+    ru: 'FlowZ Mihomo не смог заменить переносимый файл при автообновлении. Новая версия загружена по пути ниже — замените её вручную:',
+    fa: 'به‌روزرسانی خودکار FlowZ Mihomo نتوانست فایل قابل‌حمل را جایگزین کند. نسخهٔ جدید در مسیر زیر دانلود شد — لطفاً به‌صورت دستی جایگزین کنید:',
   },
   // —— deb 更新的一次性授权说明（pkexec polkit 通用框文案改不了，先在 app 内解释缘由） ——
   debUpdateElevationTitle: {
@@ -103,8 +103,8 @@ const MESSAGES = {
   },
   // —— 桌面通知（notify-user 出口） ——
   proxyErrorTitle: {
-    'zh-CN': 'FlowZ Clash 代理出错',
-    'zh-TW': 'FlowZ Clash 代理出錯',
+    'zh-CN': 'FlowZ Mihomo 代理出错',
+    'zh-TW': 'FlowZ Mihomo 代理出錯',
     'en-US': 'FlowZ Proxy Error',
     ru: 'Ошибка прокси FlowZ',
     fa: 'خطای پروکسی FlowZ',

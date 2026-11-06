@@ -1,7 +1,7 @@
 {
   "name": "flowz",
-  "version": "4.4.7",
-  "description": "FlowZ Clash - 简洁现代的跨平台代理客户端（mihomo 内核）",
+  "version": "4.5.0",
+  "description": "FlowZ Mihomo - 跨平台代理客户端（mihomo 内核）",
   "desktopName": "flowz",
   "main": "dist/main/main/index.js",
   "scripts": {
@@ -13,15 +13,15 @@
     "build:main": "node scripts/gen-build-info.js && tsc -p tsconfig.main.json",
     "build:renderer": "vite build",
     "build:helper": "node scripts/build-helper.mjs",
-    "package": "npm run fetch:core && npm run fetch:dashboard && npm run build && electron-builder",
-    "package:win": "npm run build:helper && npm run fetch:core && npm run fetch:dashboard && npm run build && electron-builder --win",
-    "package:mac": "npm run build:helper && npm run fetch:core && npm run fetch:dashboard && npm run build && electron-builder --mac --arm64 --x64",
-    "package:linux": "npm run build:helper && npm run fetch:core && npm run fetch:dashboard && npm run build && electron-builder --linux --x64",
-    "package:all": "npm run build:helper && npm run fetch:core && npm run fetch:dashboard && npm run build && electron-builder --win --mac --linux",
-    "dist": "npm run fetch:core && npm run fetch:dashboard && npm run build && electron-builder --publish never",
-    "dist:win": "npm run build:helper && npm run fetch:core && npm run fetch:dashboard && npm run build && electron-builder --win --publish never",
-    "dist:mac": "npm run build:helper && npm run fetch:core && npm run fetch:dashboard && npm run build && electron-builder --mac --arm64 --x64 --publish never",
-    "dist:linux": "npm run build:helper && npm run fetch:core && npm run fetch:dashboard && npm run build && electron-builder --linux --x64 --publish never",
+    "package": "npm run fetch:core && npm run verify:config && npm run fetch:dashboard && npm run build && electron-builder",
+    "package:win": "npm run build:helper && npm run fetch:core && npm run verify:config && npm run fetch:dashboard && npm run build && electron-builder --win",
+    "package:mac": "npm run build:helper && npm run fetch:core && npm run verify:config && npm run fetch:dashboard && npm run build && electron-builder --mac --arm64 --x64",
+    "package:linux": "npm run build:helper && npm run fetch:core && npm run verify:config && npm run fetch:dashboard && npm run build && electron-builder --linux --x64",
+    "package:all": "npm run build:helper && npm run fetch:core && npm run verify:config && npm run fetch:dashboard && npm run build && electron-builder --win --mac --linux",
+    "dist": "npm run fetch:core && npm run verify:config && npm run fetch:dashboard && npm run build && electron-builder --publish never",
+    "dist:win": "npm run build:helper && npm run fetch:core && npm run verify:config && npm run fetch:dashboard && npm run build && electron-builder --win --publish never",
+    "dist:mac": "npm run build:helper && npm run fetch:core && npm run verify:config && npm run fetch:dashboard && npm run build && electron-builder --mac --arm64 --x64 --publish never",
+    "dist:linux": "npm run build:helper && npm run fetch:core && npm run verify:config && npm run fetch:dashboard && npm run build && electron-builder --linux --x64 --publish never",
     "pretest": "node scripts/gen-build-info.js",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch",
@@ -37,7 +37,15 @@
     "release:tag": "node scripts/push-release.js",
     "release:tag:update": "node scripts/push-release.js -y -u",
     "release:prepare": "npm run fetch:core && npm run fetch:dashboard && npm run build && npm run package:all",
-    "fetch:core:android": "node scripts/fetch-core.mjs --android"
+    "fetch:core:android": "node scripts/fetch-core.mjs --android",
+    "bump:core": "node scripts/bump-core.mjs",
+    "verify:config": "cross-env MIHOMO_VERIFY=1 jest --runTestsByPath src/main/services/__tests__/mihomo-smoke-gen.test.ts",
+    "lint-staged": {
+      "src/**/*.{ts,tsx,json,css}": [
+        "prettier --write",
+        "eslint --fix --no-warn-ignored"
+      ]
+    }
   },
   "keywords": [
     "electron",
@@ -129,5 +137,10 @@
     "esbuild@0.27.3": true,
     "protobufjs@7.6.4": true,
     "unrs-resolver@1.11.1": true
+  },
+  "productName": "FlowZ Mihomo",
+  "engines": {
+    "node": ">=22",
+    "npm": ">=10"
   }
 }

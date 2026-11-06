@@ -21,10 +21,12 @@ import { MAX_GITHUB_JSON_BYTES } from '../utils/http-limits';
 import { getUserDataPath } from '../utils/paths';
 import { system32 } from '../utils/win-system32';
 import { compareSemver } from '../../shared/version';
+import { REPO_NAME, REPO_OWNER } from '../../shared/repo';
 import { ghMirrorUrl, normalizeGhProxyPrefix } from '../../shared/gh-proxy';
 import type { UserConfig } from '../../shared/types';
 import { IPC_CHANNELS } from '../../shared/ipc-channels';
 import { createIdleTimeout, parseExpectedBytes } from './download-hardening';
+import { verifyUpdateDigest } from './update-digest';
 import { findSuitableUpdateAsset } from './update-asset';
 import { UpdateNetwork } from './UpdateNetwork';
 import {
@@ -40,8 +42,11 @@ import { mt, getMainLanguage } from '../i18n';
 // 防永久挂起致更新永不 resolve（进度窗/对话框永久转圈）。正常下载持续有 data、不断重置、不会误触发。
 const DOWNLOAD_IDLE_TIMEOUT_MS = 30_000;
 
-const GITHUB_OWNER = 'dododook';
-const GITHUB_REPO = 'FlowZ';
+// 更新源必须是本仓库：此前误指上游 dododook/FlowZ（sing-box 内核版）。上游发版后，本 fork 用户会被
+// 提示「升级」到 sing-box 版，以相同 appId 覆盖安装到同一 userData 目录 —— 内核与配置语义不同，属灾难性误升级。
+// 现在仓库身份收口到 shared/repo.ts（改仓库只改一处），并配套 appId/产品名区分与 userData 迁移。
+const GITHUB_OWNER = REPO_OWNER;
+const GITHUB_REPO = REPO_NAME;
 
 /**
  * 单次下载的取消 token（per-call，非实例共享）：弹窗流持有自己的 token，取消只作用于它；关于页手动下载
@@ -194,6 +199,9 @@ export class UpdateService {
         publishedAt: latestRelease.published_at,
         isPrerelease: latestRelease.prerelease,
         fileName: asset.name,
+        // GitHub 对 release asset 回填的 `sha256:<hex>`（信任锚，随 API 走 TLS）。
+        // 取不到就不校验（老 release 兼容），但会记 warn —— 见 verifyDownloadedUpdate。
+        digest: typeof asset.digest === 'string' ? asset.digest : undefined,
       };
 
       if (this.skippedVersion === latestVersion) {
@@ -253,6 +261,7 @@ export class UpdateService {
       }
 
       await this.downloadFile(updateInfo.downloadUrl, filePath, updateInfo.fileSize);
+      await this.verifyDownloadedUpdate(filePath, updateInfo);
 
       this.logManager.addLog('info', `更新下载完成: ${filePath}`, 'UpdateService');
       this.updateProgress({ status: 'downloaded', percentage: 100, message: '下载完成' });
@@ -763,6 +772,9 @@ export class UpdateService {
         // 竞态：取消恰在下载完成瞬间到达（download 已 resolve）→ 仍按取消处理，不进 done/不安装。
         if (ctl.cancelled) return this.finishPopupCancel(filePath, '（完成瞬间）');
 
+        // 完整性门：与关于页手动下载同一条校验（镜像/直连一致）。不符则删包抛错 → 落入下方 error 态可重试。
+        await this.verifyDownloadedUpdate(filePath, updateInfo);
+
         this.popupDownloadControl = null;
         this.logManager.addLog('info', `更新下载完成: ${filePath}`, 'UpdateService');
         this.sendPopupState({
@@ -981,6 +993,30 @@ export class UpdateService {
         },
       },
       ctl
+    );
+  }
+
+  /**
+   * 应用更新包的完整性门（两条下载链共用：关于页手动下载 + 托盘/启动弹窗流）。
+   *
+   * 之前这里只有 content-length 校验 —— 长度对得上就执行安装器，而下载还可能经 gh-proxy 镜像，
+   * 镜像被投毒即可投递「长度正确的任意 exe」。现在以 GitHub API 下发的 asset.digest 为锚做 sha256 校验。
+   * digest 缺失（老 release）不阻断更新，但记 warn 留痕（诊断包可见），便于日后追查。
+   */
+  private async verifyDownloadedUpdate(filePath: string, updateInfo: UpdateInfo): Promise<void> {
+    const verdict = await verifyUpdateDigest(filePath, updateInfo.digest);
+    if (verdict === 'verified') {
+      this.logManager.addLog(
+        'info',
+        `更新包完整性校验通过（sha256）: ${updateInfo.fileName}`,
+        'UpdateService'
+      );
+      return;
+    }
+    this.logManager.addLog(
+      'warn',
+      `更新包未做 sha256 校验：release ${updateInfo.version} 的资产未提供 digest（老版本发布通道）`,
+      'UpdateService'
     );
   }
 

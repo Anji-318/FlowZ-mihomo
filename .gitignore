@@ -10,6 +10,7 @@ lerna-debug.log*
 dist/
 dist-ssr/
 dist-package/
+dist-package-smoke/
 release/
 *.local
 *.asar
@@ -71,9 +72,17 @@ subscription-cache/
 local.config.*
 *.local.json
 
-# sing-box 内核二进制（由 npm run fetch:core 按 core-manifest.json 版本+coreSha256 下载官方 release，打包时随 resources 打入；每平台 66–74MB、4 平台 ~276MB 不入库防仓库膨胀，CI 现拉现打）
+# 代理内核二进制（由 npm run fetch:core 按 core-manifest.json 版本 + 双 sha256 校验下载官方 mihomo release，
+# 打包时随 resources 打入）。每平台 20–47MB、桌面 4 平台 + Android 4 ABI 合计 ~370MB —— 绝不入库（clone 会慢到不可用），
+# CI / 打包由 fetch:core 现拉现打。
+# 历史教训：把内核从 sing-box 换成 mihomo 时这里漏改，导致 47MB 的 mihomo.exe 被提交，仓库涨到 125MB。
+resources/*/mihomo
+resources/*/mihomo.exe
+# 兼容旧 sing-box 内核（存量分支/第三方 fork 仍可能产出该文件名）
 resources/*/sing-box
 resources/*/sing-box.exe
+# Linux 提权 helper 产物（本地 build 可能落在 resources/linux）
+resources/*/flowz-helper-linux
 
 # NaiveProxy 核心库（由 npm run fetch:cronet 下载，打包时随 resources 打入；体积大不入库）
 resources/*/libcronet.*

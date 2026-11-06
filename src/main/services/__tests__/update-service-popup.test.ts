@@ -5,6 +5,8 @@
 import * as os from 'os';
 import * as path from 'path';
 import * as fsSync from 'fs';
+// 发布页地址引用常量而非硬编码：仓库更名/迁移时这里不会与 UpdateService 漂移。
+import { REPO_RELEASES_URL } from '../../../shared/repo';
 
 const TMP = fsSync.mkdtempSync(path.join(os.tmpdir(), 'flowz-updsvc-test-'));
 
@@ -67,7 +69,7 @@ describe('UpdateService.createUpdatePopup 新建窗口路径下发初始状态�
 
 describe('UpdateService.openReleasesPage 直达本版本 changelog', () => {
   const svc = new UpdateService(log) as any;
-  const RELEASES = 'https://github.com/dododook/FlowZ/releases';
+  const RELEASES = REPO_RELEASES_URL;
   beforeEach(() => openExternal.mockClear());
 
   it('传 version（带 v 前缀）→ 直达该版本 tag 页', () => {

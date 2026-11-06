@@ -12,6 +12,7 @@ import flowzIcon from '@/assets/flowz-icon.svg';
 import { api } from '@/ipc/api-client';
 import type { UpdateProgress } from '@/ipc/api-client';
 import { useTranslation } from 'react-i18next';
+import { REPO_URL } from '@shared/repo';
 import { AppUpdateBanner } from './app-update-banner';
 import { useAppStore } from '@/store/app-store';
 import { buildBugReportUrl } from '@/lib/issue-report';
@@ -173,14 +174,14 @@ export function AboutSettings() {
   };
 
   const handleOpenGitHub = async () => {
-    const url = versionInfo?.repositoryUrl || 'https://github.com/dododook/FlowZ';
+    const url = versionInfo?.repositoryUrl || REPO_URL;
     await openExternal(url);
   };
 
   // 打开 GitHub 新建 issue 页，正文已自动带上版本/系统/架构/内核/代理模式，报告者只需补问题描述与日志。
   const handleReportIssue = async () => {
     const url = buildBugReportUrl(
-      versionInfo?.repositoryUrl || 'https://github.com/dododook/FlowZ',
+      versionInfo?.repositoryUrl || REPO_URL,
       {
         appVersion: versionInfo?.appVersion,
         platform: versionInfo?.platform,
@@ -219,10 +220,10 @@ export function AboutSettings() {
         <div className="about-brand">
           {/* FlowZ 自有应用图标（ui/icon.svg，F/Z 导流单色渐变）——替换原通用占位 SVG（用户反馈）。 */}
           <div className="about-logo overflow-hidden !bg-transparent !p-0">
-            <img src={flowzIcon} alt="FlowZ Clash" className="h-full w-full object-cover" />
+            <img src={flowzIcon} alt="FlowZ Mihomo" className="h-full w-full object-cover" />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="about-name">{versionInfo?.appName || 'FlowZ Clash'}</div>
+            <div className="about-name">{versionInfo?.appName || 'FlowZ Mihomo'}</div>
             <div className="about-ver">
               {t('settings.about.version', '版本')}{' '}
               <span className="mono tnum">{versionInfo?.appVersion || '—'}</span>

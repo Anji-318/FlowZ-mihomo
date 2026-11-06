@@ -102,7 +102,7 @@ export function buildWindowsUpdateVbs(opts: {
       // 写新名失败（极罕见：原目录只读）→ 不静默：跑临时新版 + 明确提示用户手动替换
       '  Err.Clear',
       '  WshShell.Run """" & src & """", 1, False',
-      `  MsgBox "${msg}" & vbCrLf & "${srcDisplay}", 48, "FlowZ Clash"`,
+      `  MsgBox "${msg}" & vbCrLf & "${srcDisplay}", 48, "FlowZ Mihomo"`,
       'End If',
       'On Error Goto 0',
       'fso.DeleteFile WScript.ScriptFullName, True',

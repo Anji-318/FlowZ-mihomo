@@ -6,6 +6,7 @@ import { registerIpcHandler } from '../ipc-handler';
 import coreManifest from '../../../shared/core-manifest.json';
 // 构建时刻注入的真实构建日期（scripts/gen-build-info.js 生成），非运行时 new Date（B-1）。
 import { BUILD_DATE } from '../../../shared/build-info';
+import { PRODUCT_NAME, REPO_URL } from '../../../shared/repo';
 
 const BUNDLED_CORE_VERSION = coreManifest.bundledCoreVersion || 'Unknown';
 
@@ -42,11 +43,11 @@ export function registerVersionHandlers(coreUpdateService?: CoreUpdateService): 
 
       return {
         appVersion: app.getVersion(),
-        appName: 'FlowZ Clash',
+        appName: PRODUCT_NAME,
         buildDate: BUILD_DATE,
         singBoxVersion: currentSingBoxVersion,
         copyright: `© ${new Date().getFullYear()} FlowZ. All rights reserved.`,
-        repositoryUrl: 'https://github.com/dododook/FlowZ',
+        repositoryUrl: REPO_URL,
         platform: process.platform,
         arch: process.arch,
         osVersion: release(),

@@ -1,27 +1,27 @@
 {
   "coreName": "mihomo",
   "coreRepo": "MetaCubeX/mihomo",
-  "bundledCoreVersion": "1.19.29",
+  "bundledCoreVersion": "1.19.33",
   "cronetVersion": "v0.0.0-20260807161529-8d42107dcdfc",
   "coreArchiveSha256": {
-    "linux": "60de76a35a6cbf7b4fa4a20f5c257c24345d1d635ab1aa3877022a1997ef413c",
-    "win": "1a8520cfe425441eba3eba8623b27b985020031243fe1ecaa1af2b92358a03f9",
-    "mac-x64": "b57fec2e38462532fe75252792b355b99db16b0b8ea2d6bdf0cd8bc7ddacb9d2",
-    "mac-arm64": "4dc25df9e899f14161911302a8ee5fc9e202ed9c976fc405bf82c50ff27466ca",
-    "android-arm64": "ca44b51940fca5243f5099cf8c728bdfa86472af88a946265cf8f074fb2f0fe1",
-    "android-armv7": "4143c1a9e480a4947413db991b187bdea75ea0d78061bea66a4eab18c1c2ccc9",
-    "android-x64": "48cb7b1546a46a80e1de826109342a06da31bf06e951bbdc12b95e478be2a709",
-    "android-x86": "e79c717105626e1d58216d3d097cb19d7f9898dcaabab6c2b9b76c6cff73bf79"
+    "linux": "132f6f3edf9a65e62f04853aed3358472e0b2b7666daa8419edfa2ddf5bb6323",
+    "win": "6ab2180875f9f6fff8b19386d760daec257f66b45f72b3afc650634272fa837a",
+    "mac-x64": "551ae54ef8d77a5e21f7a8185a59b441fb13a0fb0514fcdef5ca2816f6f50015",
+    "mac-arm64": "060b64b0f2c9a310831db0fe4adb2878de67bfa606c311813c1f13966aa504b6",
+    "android-arm64": "2ddbd3aaa884f52b4568f406876ec81dddeef9f1bb67b90d4004d356e2c6a708",
+    "android-armv7": "ffca395177c6e25bf5f4e5dfa939bf9b443cf77369f6e0eec132024d1e459ce1",
+    "android-x64": "14181cdc0c1e77d7a751ea851a93c2c086557af5cd69433004c9644f04eb9249",
+    "android-x86": "9f0a0a02bd6c9895575f696308bbcbdea3e48af8199e57730e95264254c91ce5"
   },
   "coreBinarySha256": {
-    "linux": "9c397be7489538628fae781bc005e4c5b8cd7b0961b8bb2ca815c8150f193577",
-    "win": "4316ff91fecec2fca9acb5612d7400ba228c069ffd325b1f17f46f1d4ef7e0cd",
-    "mac-x64": "a15f68b62227c9058fcd158600808126c29a709174b23a5d51c0177b4611b595",
-    "mac-arm64": "ec66e3e883bdc3fca06753784e324e08921e13239f8e945587cb1bfbf4c6b936",
-    "android-arm64": "6f8a46e3f58b587f41f45f0e5a39f60268c15f22c5f4819b9f38c47e1ba5bf15",
-    "android-armv7": "762eaaaef5119d3c079eff72ca54da0662025e0c48bffc7c1e0711b61903dcdf",
-    "android-x64": "0ad11dbb61e0ab792427a392ac1f1eb881371f759064e723ca48680d50fec158",
-    "android-x86": "e263c4c243b2815770d6d706dc54d77445f6636f494fb638bf8dae8b5e89850e"
+    "linux": "09c2cb429cf45fb56884ceb91a0e5b17cc8b2c866c07811bcf75dfb59fef7662",
+    "win": "1cde41cfffd3de0aedad63c0a8515e1ce5eea507e8133aed0f637d316c93800a",
+    "mac-x64": "f036d657e73f53d3c9171fddf9cf4f559acca9391311292f01d2c7564c299d58",
+    "mac-arm64": "f3e8ae41397c08cbf900ce1f7c8a168285d29954e9bca5d84d69a2b2561adfe9",
+    "android-arm64": "cfa0be78846bfef7272fe5a73089f8cf0e1f15a6ffb601f5cc809f457f712f67",
+    "android-armv7": "2fbf5e623a6b7b095768bfab1e7f48180045b7bd6b67e36daf8423f81272bedb",
+    "android-x64": "fd1fb2773a0b723dbdc7d5f7e81aec8358b43d2674f689edc8f87d453e8687c7",
+    "android-x86": "efcc4989e2ef6fac0c0f22e82b97e6c1fee6623c0a0769328c6e5c41a08cbed5"
   },
   "cronetArchiveSha256": {
     "linux": "544f6216c869558957a80cc4c1269377e6036e0a906a338184fa17ff51536b90",

@@ -19,7 +19,7 @@
     "statusPathMismatch": "應用程式已移動，需修復",
     "pathMismatchDesc": "提權助手登記的核心路徑與目前應用程式不一致（應用程式可能被移動過），TUN 免授權啟動將失效，請點擊修復。",
     "statusBackgroundDisabled": "背景執行被停用",
-    "backgroundDisabledDesc": "系統設定中本應用程式的「允許在背景」已被關閉，提權助手無法執行，TUN 啟停將退回每次彈出管理員授權框。請點擊下方「開啟系統設定」，在「登入項目與擴充功能」中重新開啟 FlowZ Clash 的「允許在背景」。開啟後本頁狀態會在幾秒內自動恢復。",
+    "backgroundDisabledDesc": "系統設定中本應用程式的「允許在背景」已被關閉，提權助手無法執行，TUN 啟停將退回每次彈出管理員授權框。請點擊下方「開啟系統設定」，在「登入項目與擴充功能」中重新開啟 FlowZ Mihomo 的「允許在背景」。開啟後本頁狀態會在幾秒內自動恢復。",
     "disabledOpenSettings": "開啟系統設定",
     "backgroundRestored": "「允許在背景」已恢復，提權助手可用",
     "descFull": "安裝後 TUN 模式啟停代理、切換節點不再反覆彈出管理員授權框（僅安裝時需授權一次）。",
@@ -30,7 +30,7 @@
   },
   "proxy": {
     "systemProxyResidualTitle": "系統代理可能干擾 TUN",
-    "systemProxyResidualDesc": "TUN 模式下偵測到系統代理仍開啟（{{proxy}}），它不是 FlowZ Clash 設定的，可能導致連線異常。如非必要建議關閉。",
+    "systemProxyResidualDesc": "TUN 模式下偵測到系統代理仍開啟（{{proxy}}），它不是 FlowZ Mihomo 設定的，可能導致連線異常。如非必要建議關閉。",
     "disableSystemProxy": "關閉系統代理",
     "systemProxyDisabled": "已關閉系統代理",
     "systemProxyDisableFailed": "關閉系統代理失敗"
@@ -388,7 +388,7 @@
       "failUpdate": "儲存設定失敗",
       "clearPassword": "清除密碼",
       "startupSub": "應用程式啟動與系統匣行為",
-      "autoStartDesc": "登入系統時自動執行 FlowZ Clash",
+      "autoStartDesc": "登入系統時自動執行 FlowZ Mihomo",
       "autoConnectDesc": "還原上次的出口節點與接管方式並連線",
       "behaviorSub": "更新提示、視窗與隱私遮罩",
       "autoCheckUpdateDesc": "發現新版本時在關於頁提示",
@@ -396,9 +396,9 @@
       "groupGraphics": "圖形相容",
       "graphicsSub": "介面白屏或顯示異常時，關掉下列選項自救",
       "hardwareAcceleration": "硬體加速",
-      "hardwareAccelerationDesc": "關閉後改用軟體轉譯，可解決部分裝置的白屏、花屏、GPU 處理程序反覆崩潰。需重新啟動 FlowZ Clash 才會生效。",
+      "hardwareAccelerationDesc": "關閉後改用軟體轉譯，可解決部分裝置的白屏、花屏、GPU 處理程序反覆崩潰。需重新啟動 FlowZ Mihomo 才會生效。",
       "windowEffects": "視窗特效",
-      "windowEffectsDesc": "Windows Mica 材質、macOS 毛玻璃。關閉後改用純色背景，可解決視窗空白、合成異常。需重新啟動 FlowZ Clash 才會生效。"
+      "windowEffectsDesc": "Windows Mica 材質、macOS 毛玻璃。關閉後改用純色背景，可解決視窗空白、合成異常。需重新啟動 FlowZ Mihomo 才會生效。"
     },
     "coreVersion": {
       "changedTitle": "mihomo 核心已更新",
@@ -456,9 +456,9 @@
       "resetFactoryConfirmBtn": "重設到出廠",
       "resetFactorySuccess": "核心已重設為出廠版本",
       "resetFactoryFail": "重設核心失敗",
-      "uninstallAll": "完全解除安裝 FlowZ Clash",
-      "uninstallTitle": "完全解除安裝 FlowZ Clash",
-      "uninstallDesc": "這將徹底解除安裝 FlowZ Clash 並清除以下全部內容：",
+      "uninstallAll": "完全解除安裝 FlowZ Mihomo",
+      "uninstallTitle": "完全解除安裝 FlowZ Mihomo",
+      "uninstallDesc": "這將徹底解除安裝 FlowZ Mihomo 並清除以下全部內容：",
       "uninstallItemHelper": "提權 helper（系統級特權元件）",
       "uninstallItemCore": "受保護目錄中的 mihomo 核心",
       "uninstallItemConfig": "所有使用者設定、節點、訂閱與規則",
@@ -621,7 +621,7 @@
       "singboxDashboard": "面板",
       "openDashboard": "開啟面板",
       "dashboardNeedsNetwork": "面板隨包內建、開啟即時離線可用；點「開啟面板」在應用內視窗直連，無需手填後端。secret 與 API Secret 相同。",
-      "dashboardNodeGroupHint": "FlowZ Clash 採用延遲重啟：新增/刪除的節點在你選中它之前不寫入執行中的核心，故面板顯示的節點組可能與 FlowZ Clash 列表暫不一致（可能仍列已刪節點、或缺剛新增的節點），選中目標節點或重啟核心後即同步。請以 FlowZ Clash 主介面為準；在面板內直接切換節點不會被 FlowZ Clash 記住。",
+      "dashboardNodeGroupHint": "FlowZ Mihomo 採用延遲重啟：新增/刪除的節點在你選中它之前不寫入執行中的核心，故面板顯示的節點組可能與 FlowZ Mihomo 列表暫不一致（可能仍列已刪節點、或缺剛新增的節點），選中目標節點或重啟核心後即同步。請以 FlowZ Mihomo 主介面為準；在面板內直接切換節點不會被 FlowZ Mihomo 記住。",
       "dashboardCopyConnection": "複製連線資訊",
       "dashboardCopyConnectionDesc": "複製 URL 與 secret，供在其它面板/工具手動填寫後端。",
       "dashboardCopied": "已複製連線資訊",
@@ -662,7 +662,7 @@
         "importSuccess": "設定已還原",
         "importSuccessDesc": "已還原 {{servers}} 個節點、{{subs}} 個訂閱、{{rules}} 條規則",
         "importFail": "匯入失敗",
-        "importInvalidFile": "檔案格式無效，請選擇正確的 FlowZ Clash 備份檔案",
+        "importInvalidFile": "檔案格式無效，請選擇正確的 FlowZ Mihomo 備份檔案",
         "crossPlatformRulesDisabled": "跨平台匯入：{{count}} 條進程規則（按進程名匹配）已停用，需在規則頁重新適配目前平台的進程名",
         "meshImportHint": "匯入了 {{count}} 個組網節點：多裝置使用同一身分（主機名/認證金鑰）可能在 tailnet 衝突，建議改主機名或重新登入",
         "generalSettings": "一般設定",
@@ -1117,7 +1117,7 @@
       "userkeyPlaceholder": "可選",
       "reuse": "連線復用",
       "reuseDesc": "復用連線（v2 CONNECT），預設關閉。",
-      "coreTooOld": "目前核心不含 Snell（需 sing-box 1.14.0-alpha.38+），請先更新核心再連線。"
+      "coreTooOld": "目前核心未編入 Snell 支援（mihomo 官方建置自帶 Snell v4/v5；第三方 fork 可能裁掉）。請更新或更換核心後再連線。"
     },
     "tsAuthKeyDescFull": "預認證金鑰（pre-auth key），非互動直接入網。留空則啟動時核心記錄出登入 URL，手動授權一次。",
     "tsRoutesDescFull": "把這些 advertised 子網（如 192.168.50.0/24）的流量送進此 Tailscale 節點；tailnet 段 100.64.0.0/10 自動包含。逗號分隔。填了會自動開啟「接受子網路由」。",

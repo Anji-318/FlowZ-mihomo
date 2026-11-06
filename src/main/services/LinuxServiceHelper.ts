@@ -23,6 +23,7 @@ import * as fs from 'fs';
 import * as net from 'net';
 import * as path from 'path';
 import type { HelperStatus } from '../../shared/types';
+import { REPO_URL } from '../../shared/repo';
 import type { IPrivilegedHelper, HelperStartResult } from './IPrivilegedHelper';
 import type { ILogManager } from './LogManager';
 import { resourceManager } from './ResourceManager';
@@ -311,7 +312,7 @@ export class LinuxServiceHelper implements IPrivilegedHelper {
     // 真机验证后加（P3；过早收紧易踩 setuid/chown/dac_override 缺失）。singbox/authfile 路径不烧进 unit（多用户）。
     return `[Unit]
 Description=FlowZ privileged network helper
-Documentation=https://github.com/dododook/FlowZ
+Documentation=${REPO_URL}
 After=network.target
 
 [Service]

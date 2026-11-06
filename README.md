@@ -1,18 +1,29 @@
 <div align="center">
 
-<img src="docs/banner.png" width="100%" alt="FlowZ — 简洁现代的跨平台代理客户端，基于 sing-box，所见即所得" />
+<img src="docs/banner.png" width="100%" alt="FlowZ Mihomo — 简洁现代的跨平台代理客户端，基于 mihomo，所见即所得" />
 
-[![release](https://img.shields.io/github/v/release/dododook/FlowZ?style=flat-square&color=0E98A4&label=release)](https://github.com/dododook/FlowZ/releases)
-[![sing-box](https://img.shields.io/badge/sing--box-1.14-0E98A4?style=flat-square)](https://github.com/SagerNet/sing-box)
+[![release](https://img.shields.io/github/v/release/Anji-318/FlowZ-mihomo?style=flat-square&color=0E98A4&label=release)](https://github.com/Anji-318/FlowZ-mihomo/releases)
+[![mihomo](https://img.shields.io/badge/mihomo-1.19.33-0E98A4?style=flat-square)](https://github.com/MetaCubeX/mihomo)
 [![platform](https://img.shields.io/badge/platform-Windows%20·%20macOS%20·%20Linux-0E98A4?style=flat-square)](#-安装)
 [![license](https://img.shields.io/badge/license-MIT-0E98A4?style=flat-square)](LICENSE.txt)
-[![stars](https://img.shields.io/github/stars/dododook/FlowZ?style=flat-square&color=0E98A4)](https://github.com/dododook/FlowZ/stargazers)
+[![stars](https://img.shields.io/github/stars/Anji-318/FlowZ-mihomo?style=flat-square&color=0E98A4)](https://github.com/Anji-318/FlowZ-mihomo/stargazers)
 
 **简体中文** · [English](README.en.md) · [繁體中文](README.zh-TW.md) · [Русский](README.ru.md) · [فارسی](README.fa.md)
 
 </div>
 
 > 原作者开源地址：https://github.com/zhangjh/FlowZ
+> 上游项目（sing-box 内核）：https://github.com/dododook/FlowZ
+
+> ## ⚠️ 这是 mihomo 内核的改造版，不是上游
+>
+> 本仓库把代理内核从 **sing-box** 换成了 **mihomo（Clash Meta）**，配置文件、管理面（REST 而非 gRPC）、
+> 可用协议都与上游不同。**请勿把本仓库的发行包与上游包混装**（早期版本共用过 appId，现已改为 `com.flowz.mihomo`）。
+>
+> **能力差异（务必先读）**：NaiveProxy、SSH 出站、Tailscale 组网、自定义 outbound JSON 在 mihomo 内核下**不可用**，
+> UI 已置灰并给出原因。完整矩阵与迁移说明见 [docs/FORK.md](docs/FORK.md)。
+>
+> **完整性校验**：每次 Release 附带 `SHA256SUMS.txt`，安装前请核对哈希。
 
 主打：**配置简单 · 规则明确 · 切换不断流 · 一次授权零提权**。
 
@@ -22,10 +33,10 @@
 
 - **一次授权，永久零提权** — macOS root daemon / Windows 系统服务，装一次后 TUN 启停 · 切节点 · 退出全程免授权。
 - **改规则不断流** — 编辑已启用规则的匹配值经 local rule-set 热重载**即时生效、连接零中断**；只有结构变更才重启（去抖合并、只重启一次）。
-- **任意协议，内核即权威** — 粘贴 sing-box outbound JSON即用，保存时实时探测当前内核兼容性；官方核不支持的协议可**手动换用第三方 fork 内核**，FlowZ 自动识别 fork 并停用在线更新以保护它。
+- **协议以当前内核为权威** — 保存节点时按内核能力实时判定；不支持的类型在 UI 上直接置灰并说明原因（不再等到启用代理才报错）。
 - **组网开箱即用** — WireGuard / **WARP（一键匿名注册）** / **Tailscale（浏览器交互登录）** 作为一等节点，可选中 · 分流 · 热切。
-- **退出零残留** — 跨平台清理 sing-box 进程 / 虚拟网卡 / 系统代理，崩溃 · 注销 · 关机都兜底。
-- **sing-box 1.14 原生管理面** — 内置 1.14 内核，原生 gRPC 管理 API + 可选官方 dashboard 面板。
+- **退出零残留** — 跨平台清理代理内核进程 / 虚拟网卡 / 系统代理，崩溃 · 注销 · 关机都兜底。
+- **mihomo 1.19 管理面** — 内置 mihomo 内核，Clash REST/WS external-controller（本机回环 + Bearer secret）+ 可选 dashboard 面板。
 
 ---
 
@@ -34,10 +45,10 @@
 **协议**
 - 代理：VLESS / VMess / Trojan / Shadowsocks / **Snell** / Hysteria2 / TUIC / AnyTLS / **NaiveProxy** / SOCKS / HTTP / SSH
 - 组网：**WireGuard** / **Cloudflare WARP** / **Tailscale**
-- **自定义协议 + 换核扩展**：粘贴 sing-box outbound JSON，保存时「内核即权威」实时探测兼容性；官方核不支持的协议可手动替换为支持它的第三方 fork 内核（FlowZ 自动识别 fork、停用在线更新以防覆盖）
+- ~~自定义协议 + 换核扩展~~：自定义 outbound JSON 是 sing-box 专有能力，mihomo 内核不支持（UI 已停用）；仍支持换用第三方 mihomo fork 内核（自动识别 fork、停用在线更新以防覆盖）
 
 **核心**
-- sing-box 1.14 统一内核，随包内置（Windows / macOS arm64+x64 / Linux）
+- mihomo 1.19.33 统一内核，随包内置（Windows / macOS arm64+x64 / Linux / Android ABI）
 - 抗封增强：**TLS Fragment**（全局）/ ECH / Multiplex / httpupgrade / **Shadow-TLS**（可附加于 SS2022 等协议）/ **Hysteria2 端口跳跃**（订阅自动识别，部分附手动开关）
 - **Block QUIC**（节点无关）：reject 代理向 QUIC/UDP 443，逼浏览器回退 TCP，解决节点 UDP relay 不通导致的网页卡顿
 - **WebRTC 防泄露**（仅 TUN）：off / 走代理 / 阻断，三档可选
@@ -84,8 +95,8 @@
 - 开机自启 + 自动连接 + 静默启动
 
 **管理与诊断**
-- **sing-box 1.14 原生 gRPC 管理 API**（取代 clash_api）：状态 / 连接 / 分组 / 节点热切统一走原生面
-- **官方 sing-box 面板集成**（opt-in 逃生舱）：开关开启后由内核在 `/dashboard/` serve 官方面板，给高级用户全功能入口
+- **mihomo external-controller（REST + WS）**：状态 / 连接 / 分组 / 节点热切统一走该管理面；仅监听 127.0.0.1 且强制 Bearer secret
+- **官方 dashboard 集成**（opt-in 逃生舱）：开关开启后由内核在 `/dashboard/` serve Clash 系面板，给高级用户全功能入口
 - **诊断报告导出**：一键采集脱敏诊断信息，便于排障
 
 **系统与可靠性**
@@ -143,7 +154,7 @@
 提 issue 前请先读——以下均为**设计如此，并非 bug**。
 
 ### 结构性配置变更会短暂重连（约 1 秒），属正常
-底层 sing-box 内核**没有运行时增删 outbound / 重载整份配置的 API**（其 Clash 兼容 API 只能在已加载节点间切换，`PUT /configs` 是空操作）。因此 FlowZ 把变更分为两类：
+mihomo 的 REST 管理面**只能在已加载的节点/组之间切换**，没有「运行时增删 outbound 并热生效」的能力（改结构必须重载整份配置）。因此 FlowZ 把变更分为两类：
 
 - **实时生效、连接零中断**：
   - 切换选中节点（selector 热切换）。
@@ -153,14 +164,14 @@
   - 切换路由模式（全局 / 智能 / 直连）、改本地端口或 TUN/inbound 设置。
   - 编辑当前被引用的节点，或订阅更新引入了**被引用的新节点**。
 
-重启很快、连接会自动恢复。**改这些设置时出现短暂闪断请勿提 issue**——这是 sing-box 应用结构性变更的固有方式。
+重启很快、连接会自动恢复。**改这些设置时出现短暂闪断请勿提 issue**——这是 mihomo 应用结构性变更的固有方式。
 
 ### 其它预期行为
 - **Tailscale：每设备只支持一个节点。** 所有 Tailscale 账号共用 `100.64.0.0/10`，多个会互相覆盖。
 - **NaiveProxy 依赖 Cronet 库**（Linux/Windows，打包时拉取）。缺失时 naive 节点会被**自动跳过**——其它协议不受影响；若选中的正是 naive 节点会明确提示。
 - **系统代理模式无法完整控制 DNS、也挡不住 QUIC 泄漏。** 只有 TUN 模式接管系统 DNS 并能 reject 代理向 QUIC。需要防泄漏的 DNS/QUIC 请用 TUN。
 - **Block QUIC 仅作用于代理向 QUIC。** 以 QUIC 拨号的节点（hysteria2 / tuic / naive）自身不受影响——它 reject 的是去往代理的 UDP 443，逼浏览器回退 TCP。
-- **macOS 提示「软件已损坏」**（未签名构建）→ 移除隔离属性：`xattr -cr /Applications/FlowZ.app`。
+- **macOS 提示「软件已损坏」**（当前构建未做 Developer ID 签名/公证）→ 先核对 `SHA256SUMS.txt`，确认无误后再移除隔离属性：`xattr -cr "/Applications/FlowZ Mihomo.app"`。
 
 ---
 
@@ -176,7 +187,7 @@
 
 ## 📥 安装
 
-从 [Releases](https://github.com/dododook/FlowZ/releases) 下载最新版本。
+从 [Releases](https://github.com/Anji-318/FlowZ-mihomo/releases) 下载最新版本，并核对随附的 `SHA256SUMS.txt`。
 
 | 平台 | 安装 |
 |------|------|
@@ -187,7 +198,7 @@
 macOS 若提示「软件已损坏」，移除隔离属性即可：
 
 ```bash
-xattr -cr /Applications/FlowZ.app
+xattr -cr "/Applications/FlowZ Mihomo.app"
 ```
 
 ---
@@ -204,7 +215,7 @@ xattr -cr /Applications/FlowZ.app
 ## 🛠 从源码构建
 
 ```bash
-git clone https://github.com/dododook/FlowZ.git
+git clone https://github.com/Anji-318/FlowZ-mihomo.git
 cd FlowZ
 npm install
 
@@ -241,8 +252,8 @@ WireGuard / WARP / Tailscale 作为 endpoint 节点接入，和普通代理一�
 - **TLS Fragment**（全局开关）：切分 TLS ClientHello，规避基于 SNI 的 DPI 阻断。对所有 TCP-TLS 节点生效；hysteria2 / tuic / naive 自动排除。
 - **ECH / Multiplex / httpupgrade / Hysteria2 端口跳跃**：从 **sing-box JSON 订阅自动识别并生效**（Multiplex 对 reality+vision 节点自动跳过；端口跳跃支持多段范围）。
 
-### sing-box 官方面板（opt-in）
-设置开启后，内核会在管理 API 监听口的 `/dashboard/` 提供官方 sing-box 面板。**仅在代理运行时可用**，与代理模式 / 路由模式无关。首次需联网下载面板资源（可走 GitHub 镜像加速）。
+### 官方 dashboard（opt-in）
+设置开启后，内核会在管理 API 监听口的 `/dashboard/` 提供 Clash 系官方面板。**仅在代理运行时可用**，与代理模式 / 路由模式无关。首次需联网下载面板资源（可走 GitHub 镜像加速）。
 
 ### ⚠️ NaiveProxy（naive）核心库说明
 naive 出站底层走 **Chromium 的 Cronet 网络库**以获得与浏览器一致的指纹，各平台链接方式不同：
@@ -256,8 +267,8 @@ naive 出站底层走 **Chromium 的 Cronet 网络库**以获得与浏览器一�
 ## 🔧 技术栈
 
 - **Electron 42** + **React 19** + TypeScript
-- **sing-box 1.14**（代理内核，多平台随包内置）
-- 管理面：sing-box 1.14 **原生 gRPC API**（取代 clash_api）
+- **mihomo 1.19.33**（代理内核，多平台随包内置）
+- 管理面：mihomo **REST + WebSocket**（external-controller）
 - Tailwind CSS + Radix UI · **Conduit 设计系统**（token 驱动双主题 + 自托管字体）
 - Vite（构建）/ electron-builder（打包）
 - Go（macOS 提权 helper · Windows 提权服务）
@@ -278,4 +289,4 @@ MIT License
 
 ## ⭐ Star 趋势
 
-[![Star History Chart](https://api.star-history.com/svg?repos=dododook/FlowZ&type=Date)](https://star-history.com/#dododook/FlowZ&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=Anji-318/FlowZ-mihomo&type=Date)](https://star-history.com/#Anji-318/FlowZ-mihomo&Date)

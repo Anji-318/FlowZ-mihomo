@@ -1,8 +1,11 @@
 name: CI
 
-# 验证门禁：lint + test + build（tsc/vite），双平台。职责=「改动是否正确」，快速反馈。
-# 打包（出安装包）已拆到 package.yml，不再在每个 PR/push 上跑——CI 只做验证，约 2min。
-# 建议：main 开 ruleset，把本 workflow 的 test (macos-latest) / test (windows-latest) 设为 required checks。
+# 验证门禁：lint + test + build（tsc/vite）+ 内核配置校验，三平台。职责=「改动是否正确」，快速反馈。
+# 打包（出安装包）在 package.yml / release.yml，不在这里跑。
+#
+# 为什么要三平台：发布物覆盖 Windows / macOS / Linux，而主进程平台分支密集（路径分隔符、TUN 适配器、
+# 提权 helper）。此前只跑 mac/win，Linux 专属代码（systemd-resolved、pkexec、/usr/local/lib/flowz）
+# 直到发版才第一次编译 —— 现在补齐。
 on:
   push:
     branches:
@@ -24,9 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 双平台必留：主进程平台分支密集、有 Windows path 分隔符 CI 翻车前科（config-snapshot），
-        # test 每 leg 仅约 1.5-2min，是全流程性价比最高的部分。
-        os: [macos-latest, windows-latest]
+        os: [macos-latest, windows-latest, ubuntu-latest]
 
     steps:
       - name: Checkout code
@@ -35,7 +36,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '26'
+          node-version-file: '.nvmrc'
           cache: 'npm'
 
       - name: Install dependencies
@@ -48,6 +49,25 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+      # 随包内核不入库（.gitignore），CI 现拉现用。缓存键绑 manifest 内容：升核自动失效。
+      - name: Cache bundled cores
+        uses: actions/cache@v4
+        with:
+          path: |
+            resources/win/mihomo.exe
+            resources/linux/mihomo
+            resources/mac-x64/mihomo
+            resources/mac-arm64/mihomo
+          key: cores-${{ runner.os }}-${{ hashFiles('src/shared/core-manifest.json') }}
+
+      - name: Fetch bundled cores (sha256 pinned)
+        run: npm run fetch:core
+
+      # 发布门禁下沉到 CI：用真实内核 `mihomo -t` 校验生成的配置。
+      # 这是整次 mihomo 迁移中风险最高的 559 行代码，此前只有「能生成 YAML」的冒烟，改了错映射只能真机发现。
+      - name: Verify generated mihomo config
+        run: npm run verify:config
 
       - name: Build application
         run: npm run build

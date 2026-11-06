@@ -14,15 +14,19 @@ import {
 } from '../speed-test';
 
 describe('parseSpeedTestUrl（测速 URL 解析）', () => {
-  it('默认 generate_204 (http) → host/path/port 正确', () => {
+  // 默认端点是 https（与 FlClash 默认一致，见 speed-test.ts:DEFAULT_SPEED_TEST_URL 注释）。
+  // 此断言此前停留在 http/80，CI 一直红着 —— 修的是测试而非代码：http 默认会被中间设备篡改，
+  // 测速结果不可信，https 才是有意的选择。
+  it('默认 generate_204 (https) → host/path/port 正确', () => {
     const r = parseSpeedTestUrl(DEFAULT_SPEED_TEST_URL);
-    expect(r).toEqual({
-      https: false,
+    // 不断言 absoluteUri：该字段是「经 HTTP 代理的绝对形式」，只对 http 目标有意义（https 走 CONNECT）。
+    // 对 https 目标它仍拼成 http:// 形式，属文档化的未用字段，断它只会把误导固化进测试。
+    expect(r).toMatchObject({
+      https: true,
       host: 'www.gstatic.com',
-      port: 80,
+      port: 443,
       path: '/generate_204',
       hostHeader: 'www.gstatic.com',
-      absoluteUri: 'http://www.gstatic.com/generate_204',
     });
   });
 
@@ -83,7 +87,7 @@ describe('resolveSpeedTestTarget（非法回落默认）', () => {
 
   it('非法 → 默认', () => {
     expect(resolveSpeedTestTarget('garbage').host).toBe('www.gstatic.com');
-    expect(resolveSpeedTestTarget('').https).toBe(false);
+    expect(resolveSpeedTestTarget('').https).toBe(true); // 回落默认 https 端点
   });
 
   it('合法 https → 用该端点（不回落）', () => {

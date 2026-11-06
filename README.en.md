@@ -2,11 +2,11 @@
 
 <img src="docs/banner.png" width="100%" alt="FlowZ — a clean, modern cross-platform proxy client built on sing-box, WYSIWYG" />
 
-[![release](https://img.shields.io/github/v/release/dododook/FlowZ?style=flat-square&color=0E98A4&label=release)](https://github.com/dododook/FlowZ/releases)
-[![sing-box](https://img.shields.io/badge/sing--box-1.14-0E98A4?style=flat-square)](https://github.com/SagerNet/sing-box)
+[![release](https://img.shields.io/github/v/release/Anji-318/FlowZ-mihomo?style=flat-square&color=0E98A4&label=release)](https://github.com/Anji-318/FlowZ-mihomo/releases)
+[![mihomo](https://img.shields.io/badge/mihomo-1.19.33-0E98A4?style=flat-square)](https://github.com/MetaCubeX/mihomo)
 [![platform](https://img.shields.io/badge/platform-Windows%20·%20macOS%20·%20Linux-0E98A4?style=flat-square)](#-installation)
 [![license](https://img.shields.io/badge/license-MIT-0E98A4?style=flat-square)](LICENSE.txt)
-[![stars](https://img.shields.io/github/stars/dododook/FlowZ?style=flat-square&color=0E98A4)](https://github.com/dododook/FlowZ/stargazers)
+[![stars](https://img.shields.io/github/stars/Anji-318/FlowZ-mihomo?style=flat-square&color=0E98A4)](https://github.com/Anji-318/FlowZ-mihomo/stargazers)
 
 [简体中文](README.md) · **English** · [繁體中文](README.zh-TW.md) · [Русский](README.ru.md) · [فارسی](README.fa.md)
 
@@ -15,6 +15,17 @@
 > Original open-source project: https://github.com/zhangjh/FlowZ
 
 Built around: **simple setup · clear rules · uninterrupted switching · authorize once, zero re-prompts**.
+
+
+> ## ⚠️ This is the mihomo-core variant, not upstream
+>
+> The proxy core is **mihomo (Clash Meta)**, not sing-box. Config format, management API (REST instead of gRPC)
+> and supported protocols differ from upstream. Do not mix packages from the two repositories.
+>
+> **Capability differences**: NaiveProxy, SSH outbound, Tailscale and custom outbound JSON are **not available**
+> on the mihomo core; the UI disables them and explains why. See [docs/FORK.md](docs/FORK.md).
+>
+> **Integrity**: every Release ships `SHA256SUMS.txt` — verify it before installing.
 
 ---
 
@@ -25,7 +36,7 @@ Built around: **simple setup · clear rules · uninterrupted switching · author
 - **Any protocol, the core is the source of truth** — paste a sing-box outbound JSON and it just works; compatibility is probed against the running core on save. For protocols the official core doesn't support, you can **manually swap in a third-party fork core** — FlowZ detects the fork and disables online updates to protect it.
 - **Mesh out of the box** — WireGuard / **WARP (one-click anonymous registration)** / **Tailscale (interactive browser login)** are first-class nodes you can select, route, and hot-switch.
 - **No leftovers on exit** — cross-platform cleanup of the sing-box process / virtual adapter / system proxy, with fallbacks for crash, logout, and shutdown.
-- **sing-box 1.14 native management** — bundled 1.14 core, native gRPC management API plus an optional official dashboard panel.
+- **mihomo 1.19.33 native management** — bundled 1.14 core, native gRPC management API plus an optional official dashboard panel.
 
 ---
 
@@ -37,7 +48,7 @@ Built around: **simple setup · clear rules · uninterrupted switching · author
 - **Custom protocol + core swap**: paste a sing-box outbound JSON; on save, "the core is the source of truth" probes live compatibility. For protocols the official core lacks, manually replace it with a third-party fork core that supports them (FlowZ auto-detects forks and disables online updates to avoid overwriting them).
 
 **Core**
-- sing-box 1.14 unified core, bundled per-platform (Windows / macOS arm64+x64 / Linux)
+- mihomo 1.19.33 unified core, bundled per-platform (Windows / macOS arm64+x64 / Linux)
 - Anti-censorship: **TLS Fragment** (global) / ECH / Multiplex / httpupgrade / **Shadow-TLS** (stackable on SS2022 and others) / **Hysteria2 port hopping** (auto-detected from subscriptions, some with manual toggles)
 - **Block QUIC** (node-agnostic): reject proxy-bound QUIC/UDP 443 to force browsers back to TCP, fixing page stalls caused by nodes whose UDP relay is unreachable
 - **WebRTC leak protection** (TUN only): off / via proxy / block
@@ -68,7 +79,7 @@ Built around: **simple setup · clear rules · uninterrupted switching · author
 - DoH upstreams, node-domain anti-loopback, private DoH leak interception
 
 **Subscriptions**
-- Subscription import (sing-box JSON and common share formats)
+- Subscription import (mihomo/Clash YAML and common share formats)
 - Manual import: bring nodes into Manual from a file or pasted text (sing-box / Xray / Clash configs, Base64, share links); Clash proxy-providers are imported as subscriptions (no auto-update, direct by default)
 - Auto-update scheduling (**on by default**): catch-up for stale subscriptions on startup + periodic checks + exponential backoff + an "update over proxy" toggle; updates **never interrupt the current connection**
 - Stable node fingerprint reconciliation: subscription updates keep local id / selected node, zero connection drop
@@ -84,7 +95,7 @@ Built around: **simple setup · clear rules · uninterrupted switching · author
 - Launch on boot + auto-connect + silent start
 
 **Management & diagnostics**
-- **sing-box 1.14 native gRPC management API** (replacing clash_api): status / connections / groups / node hot-switch all go through the native plane
+- **mihomo 1.19.33 native gRPC management API** (replacing clash_api): status / connections / groups / node hot-switch all go through the native plane
 - **Official sing-box dashboard integration** (opt-in escape hatch): when enabled, the core serves the official panel at `/dashboard/` for power users
 - **Diagnostic report export**: one-click redacted diagnostic collection for troubleshooting
 
@@ -160,7 +171,7 @@ This restart is fast and connections come back on their own. **Please don't file
 - **NaiveProxy needs the Cronet library** on Linux/Windows (fetched at build time). If it's missing, naive nodes are auto-skipped — other protocols are unaffected; if a selected node is naive you'll get an explicit notice.
 - **System-proxy mode can't fully control DNS or block QUIC leaks.** Only TUN mode takes over system DNS and can reject proxy-bound QUIC. Use TUN if you need leak-proof DNS / QUIC.
 - **Block QUIC affects proxy-bound QUIC only.** Nodes that dial over QUIC (hysteria2 / tuic / naive) are unaffected — it rejects UDP 443 destined for the proxy to push browsers back to TCP.
-- **macOS "FlowZ is damaged"** on an unsigned build → clear the quarantine attribute: `xattr -cr /Applications/FlowZ.app`.
+- **macOS "FlowZ is damaged"** on an unsigned build → clear the quarantine attribute: `xattr -cr "/Applications/FlowZ Mihomo.app"`.
 
 ---
 
@@ -176,7 +187,7 @@ This restart is fast and connections come back on their own. **Please don't file
 
 ## 📥 Installation
 
-Download the latest build from [Releases](https://github.com/dododook/FlowZ/releases).
+Download the latest build from [Releases](https://github.com/Anji-318/FlowZ-mihomo/releases).
 
 | Platform | Install |
 |------|------|
@@ -187,7 +198,7 @@ Download the latest build from [Releases](https://github.com/dododook/FlowZ/rele
 If macOS reports "FlowZ is damaged", clear the quarantine attribute:
 
 ```bash
-xattr -cr /Applications/FlowZ.app
+xattr -cr "/Applications/FlowZ Mihomo.app"
 ```
 
 ---
@@ -204,7 +215,7 @@ xattr -cr /Applications/FlowZ.app
 ## 🛠 Build from Source
 
 ```bash
-git clone https://github.com/dododook/FlowZ.git
+git clone https://github.com/Anji-318/FlowZ-mihomo.git
 cd FlowZ
 npm install
 
@@ -239,7 +250,7 @@ Rejects **proxy-bound QUIC (UDP 443)** to push browsers back to TCP, fixing "pag
 
 ### Anti-censorship
 - **TLS Fragment** (global toggle): splits the TLS ClientHello to evade SNI-based DPI blocking. Applies to all TCP-TLS nodes; hysteria2 / tuic / naive are auto-excluded.
-- **ECH / Multiplex / httpupgrade / Hysteria2 port hopping**: **auto-detected from the sing-box JSON subscription** (Multiplex auto-skipped for reality+vision nodes; port hopping supports multiple ranges).
+- **ECH / Multiplex / httpupgrade / Hysteria2 port hopping**: **auto-detected from the mihomo/Clash YAML subscription** (Multiplex auto-skipped for reality+vision nodes; port hopping supports multiple ranges).
 
 ### Official sing-box dashboard (opt-in)
 When enabled in Settings, the core serves the official sing-box panel at `/dashboard/` on the management API port. **Available only while the proxy is running**, independent of proxy / route mode. The panel assets are downloaded on first use (can route through the GitHub mirror).
@@ -256,8 +267,8 @@ naive's outbound uses **Chromium's Cronet network library** for browser-identica
 ## 🔧 Tech Stack
 
 - **Electron 42** + **React 19** + TypeScript
-- **sing-box 1.14** (proxy core, bundled per-platform)
-- Management: sing-box 1.14 **native gRPC API** (replacing clash_api)
+- **mihomo 1.19.33** (proxy core, bundled per-platform)
+- Management: mihomo 1.19.33 **native gRPC API** (replacing clash_api)
 - Tailwind CSS + Radix UI · **Conduit design system** (token-driven dual theme + self-hosted fonts)
 - Vite (build) / electron-builder (packaging)
 - Go (macOS privilege helper · Windows privilege service)
@@ -278,4 +289,4 @@ This software is for learning and research only. Comply with your local laws and
 
 ## ⭐ Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=dododook/FlowZ&type=Date)](https://star-history.com/#dododook/FlowZ&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=Anji-318/FlowZ-mihomo&type=Date)](https://star-history.com/#Anji-318/FlowZ-mihomo&Date)

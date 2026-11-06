@@ -7,6 +7,8 @@ export interface UpdateInfo {
   publishedAt: string;
   isPrerelease: boolean;
   fileName: string;
+  /** GitHub release asset 的 `sha256:<hex>` 摘要（安装包完整性校验锚；老 release 可能缺失）。 */
+  digest?: string;
 }
 
 export type UpdateStatus =

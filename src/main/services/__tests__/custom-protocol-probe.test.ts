@@ -1,22 +1,26 @@
 /**
- * 自定义协议（custom raw-JSON，如 snell）兼容性 probe 单测。
- * 本项目铁律：runtime 语义（内核兼容性）code review 判不准，须以「mock 内核 check 行为 + 断言 FlowZ 包裹/判定」验证。
+ * 自定义协议（用户粘贴的出站定义）兼容性 probe 单测 —— **mihomo 版**。
  *
- * 验证「内核即权威」不变量：ProxyManager.probeOutbound 把用户 JSON 包成最小 config 跑 sing-box check，
- * verdict 完全由内核 check 结果决定。covers：
- *  - snell 在官方内核 → check 报 `unknown outbound type: snell` → probe fail（不支持需第三方内核）。
- *  - 同一份 snell 在第三方内核（mock check 通过）→ probe ok（证 verdict 只跟内核走，与 FlowZ 无关）。
- *  - 第三方内核字段校验委托：字段非法（缺 psk 等）→ 内核 fail → probe 透传该错。
- *  - outbound vs endpoint 两种最小 config 包裹形态正确（probe tag 注入 / direct 兜底 / route.final）。
- *  - failOpen（核缺失/超时）→ indeterminate（中性「无法判定」，非红色「不支持」）。
+ * 历史：这份测试原来针对 sing-box（JSON 配置 + outbounds[]/endpoints[] 分野）。换核后
+ * `probeOutbound` 改为生成 **YAML**（`proxies[]` + `proxy-groups`），且 mihomo 没有
+ * endpoint/outbound 分野 —— 旧断言（JSON.parse、outbounds、未知 snell 类型）必然失败，
+ * 已在 v4.5.0 一并重写（它也是当时 CI 长期红着的两个用例）。
+ *
+ * 现在验证的「内核即权威」不变量没变：verdict 只由内核 check 结果决定，FlowZ 只负责把
+ * 用户定义包成最小可校验配置。
+ * covers：
+ *  - 最小包装形态：proxies[0] 带 name='probe'、无 tag；proxy-groups 引用 probe + DIRECT；rules 兜底 MATCH。
+ *  - 内核 check 失败 → probe fail 且错误原文透传（不猜、不改写）。
+ *  - 内核 check 通过 → probe ok（同一份定义，verdict 只跟内核走）。
+ *  - isEndpoint 参数在 mihomo 下是 no-op（签名兼容），两条路径产物一致。
+ *  - failOpen（核缺失/超时）→ indeterminate（中性「无法判定」，不是「不支持」）。
  *  - 非法入参（非对象 / 无 string type）→ 直接 fail，不触发 check。
- *
- * snell schema 取自第三方 fork nekolsd/sing-box 官方文档（version 为 int 非 string，必填 psk）。
  */
 
 import * as os from 'os';
 import * as fsSync from 'fs';
 import * as path from 'path';
+import yaml from 'js-yaml';
 
 const TMP = fsSync.mkdtempSync(path.join(os.tmpdir(), 'flowz-probe-test-'));
 jest.mock('electron', () => ({
@@ -46,26 +50,25 @@ import { ProxyManager } from '../ProxyManager';
 function cbOf(args: any[]): (err: any, stdout?: string, stderr?: string) => void {
   return typeof args[2] === 'function' ? args[2] : args[3];
 }
-/** 从 execFile 参数取 `check -c <path>` 的配置路径并解析其内容（断言包裹形态用）。 */
+
+/** 从 execFile 参数取配置路径并解析 YAML（mihomo 配置是 YAML，不再是 JSON）。 */
 function readProbeConfig(args: any[]): any {
   const argv = args[1] as string[];
+  // runSingBoxCheck 传 `-t -f <path>`（mihomo 的配置校验模式）；兼容 `-c <path>` 旧形态。
+  const fi = argv.indexOf('-f');
   const ci = argv.indexOf('-c');
-  const p = ci >= 0 ? argv[ci + 1] : argv[argv.length - 1];
-  return JSON.parse(fsSync.readFileSync(p, 'utf-8'));
+  const p = fi >= 0 ? argv[fi + 1] : ci >= 0 ? argv[ci + 1] : argv[argv.length - 1];
+  return yaml.load(fsSync.readFileSync(p, 'utf-8'));
 }
 
 function freshPm(): any {
-  // 假 singboxPath：statSync 抛 → binId='na'；getCoreVersion 真 exec 失败 → 回落 bundledCoreVersion。互不影响 probe 判定。
-  const pm: any = new ProxyManager(
-    undefined,
-    undefined,
-    path.join(TMP, 'cfg.json'),
-    '/fake/sing-box'
-  );
+  // 假内核路径：statSync 抛 → binId='na'；getCoreVersion 真 exec 失败 → 回落 bundledCoreVersion。互不影响 probe 判定。
+  const pm: any = new ProxyManager(undefined, undefined, path.join(TMP, 'cfg.json'), '/fake/mihomo');
   pm.logToManager = () => {};
   return pm;
 }
 
+/** 一份「当前内核支持」的出站定义（snell v4 在 mihomo 可用）。 */
 const SNELL = {
   type: 'snell',
   server: '1.2.3.4',
@@ -76,43 +79,56 @@ const SNELL = {
 
 beforeEach(() => mockExecFile.mockReset());
 
-describe('probeOutbound — 内核即权威 verdict', () => {
-  it('官方内核拒 snell（unknown outbound type）→ probe fail，透传内核错', async () => {
+describe('probeOutbound — 内核即权威 verdict（mihomo YAML）', () => {
+  it('内核 check 失败 → probe fail，且错误原文透传', async () => {
     const pm = freshPm();
     let seenCfg: any = null;
     mockExecFile.mockImplementationOnce((...args: any[]) => {
       seenCfg = readProbeConfig(args);
       const err: any = new Error('check failed');
       err.code = 1;
-      err.stderr =
-        'FATAL[0000] decode config at x.json: outbounds[0]: unknown outbound type: snell';
+      // mihomo 的报错措辞与 sing-box 不同，此处只验证「原文透传」，不锁定具体文案。
+      err.stderr = "FATAL[0000] parse config error: proxy 0: unsupported proxy type: some-proto";
       cbOf(args)(err);
     });
-    const r = await pm.probeOutbound(SNELL, false);
+    const unsupported = { type: 'some-proto', server: '1.2.3.4', port: 443 };
+    const r = await pm.probeOutbound(unsupported, false);
     expect(r.ok).toBe(false);
     expect(r.indeterminate).toBeFalsy();
-    expect(r.error).toMatch(/unknown outbound type: snell/);
-    // 包裹形态：outbound 路径 → outbounds:[{...snell, tag:'probe'}, {direct}], route.final='direct'
-    expect(seenCfg.outbounds[0].type).toBe('snell');
-    expect(seenCfg.outbounds[0].tag).toBe('probe');
-    expect(seenCfg.outbounds.some((o: any) => o.type === 'direct')).toBe(true);
-    expect(seenCfg.route.final).toBe('direct');
+    expect(r.error).toMatch(/unsupported proxy type: some-proto/);
+
+    // 最小包装形态：proxies 只有被探测项，name 固定 'probe'，且不残留 sing-box 的 tag
+    expect(Array.isArray(seenCfg.proxies)).toBe(true);
+    expect(seenCfg.proxies).toHaveLength(1);
+    expect(seenCfg.proxies[0].type).toBe('some-proto');
+    expect(seenCfg.proxies[0].name).toBe('probe');
+    expect(seenCfg.proxies[0].tag).toBeUndefined();
+
+    // 组与兜底规则：select 组引用 probe + DIRECT，rules 以 MATCH 收尾（否则 mihomo 校验会因无规则失败）
+    expect(seenCfg['proxy-groups'][0]).toMatchObject({
+      name: 'proxy-selector',
+      type: 'select',
+      proxies: ['probe', 'DIRECT'],
+    });
+    expect(seenCfg.rules).toEqual(['MATCH,proxy-selector']);
+    // log 级别压到 fatal：probe 不该污染应用日志
+    expect(seenCfg.log).toEqual({ level: 'fatal' });
   });
 
-  it('第三方内核支持 snell（check 通过）→ probe ok（同一份 JSON，verdict 只跟内核）', async () => {
+  it('内核 check 通过 → probe ok（同一份定义，verdict 只跟内核走）', async () => {
     const pm = freshPm();
     mockExecFile.mockImplementationOnce((...args: any[]) => cbOf(args)(null, '', ''));
     const r = await pm.probeOutbound(SNELL, false);
     expect(r.ok).toBe(true);
   });
 
-  it('第三方内核字段校验委托：缺 psk → 内核 fail → probe 透传 `psk is required`', async () => {
+  it('字段级错误由内核裁决（缺 psk 等）→ probe 透传内核错误', async () => {
     const pm = freshPm();
     const badSnell = { type: 'snell', server: '1.2.3.4', server_port: 8388, version: 4 }; // 无 psk
     mockExecFile.mockImplementationOnce((...args: any[]) => {
       const err: any = new Error('check failed');
       err.code = 1;
-      err.stderr = 'FATAL[0000] initialize outbound[0]: snell: psk is required';
+      err.stderr = 'FATAL[0000] proxy 0: snell: psk is required';
       cbOf(args)(err);
     });
     const r = await pm.probeOutbound(badSnell, false);
@@ -120,21 +136,21 @@ describe('probeOutbound — 内核即权威 verdict', () => {
     expect(r.error).toMatch(/psk is required/);
   });
 
-  it('isEndpoint=true → 最小 config 走 endpoints[] 包裹', async () => {
+  it('isEndpoint 在 mihomo 下是 no-op：两条路径产物一致（无 endpoints[] 分野）', async () => {
     const pm = freshPm();
-    let seenCfg: any = null;
-    mockExecFile.mockImplementationOnce((...args: any[]) => {
-      seenCfg = readProbeConfig(args);
+    const cfgs: any[] = [];
+    mockExecFile.mockImplementation((...args: any[]) => {
+      cfgs.push(readProbeConfig(args));
       cbOf(args)(null, '', '');
     });
-    const epLike = { type: 'some-endpoint', server: '1.2.3.4' };
-    const r = await pm.probeOutbound(epLike, true);
-    expect(r.ok).toBe(true);
-    expect(Array.isArray(seenCfg.endpoints)).toBe(true);
-    expect(seenCfg.endpoints[0].type).toBe('some-endpoint');
-    expect(seenCfg.endpoints[0].tag).toBe('probe');
-    // endpoint 路径 outbounds 仅兜底 direct（无 probe 节点混入 outbounds）
-    expect(seenCfg.outbounds.every((o: any) => o.type === 'direct')).toBe(true);
+    const epLike = { type: 'wireguard', server: '1.2.3.4', port: 51820 };
+    const a = await pm.probeOutbound(epLike, false);
+    const b = await pm.probeOutbound(epLike, true); // 不同缓存键（ep/ob），会各自跑一次
+    expect(a.ok).toBe(true);
+    expect(b.ok).toBe(true);
+    expect(cfgs).toHaveLength(2);
+    expect(cfgs[0]).toEqual(cfgs[1]);
+    expect(cfgs[0].endpoints).toBeUndefined();
   });
 
   it('failOpen（核缺失/超时）→ indeterminate（中性无法判定，非红色不支持）', async () => {
@@ -159,30 +175,34 @@ describe('probeOutbound — 内核即权威 verdict', () => {
 });
 
 describe('probeCache LRU 上限（性能 review M1）', () => {
-  it('超 MAX_PROBE_CACHE 上限驱逐最旧（真实 probeOutbound 驱动，约束实现驱逐逻辑）', async () => {
+  it('超上限驱逐最旧（真实 probeOutbound 驱动，约束实现驱逐逻辑）', async () => {
     const pm = freshPm();
-    const MAX = (ProxyManager as any).MAX_PROBE_CACHE as number;
-    expect(MAX).toBeGreaterThan(0);
+    // 实现侧上限是 2048：真按 2048+20 次跑，每次都要落一个临时 YAML（磁盘 IO），
+    // 本机实测 72s、CI 更慢 → 会撞 90s 超时导致 worker 被杀、污染后续用例（历史 flaky 根因）。
+    // 这里临时把上限压到 32 —— 驱逐逻辑（Map 插入序 + while 删最旧）与上限数值无关，
+    // 压小后仍是「真实 probeOutbound 驱动」，但 52 次即可覆盖边界，且毫秒级。
+    const originalMax = (ProxyManager as any).MAX_PROBE_CACHE as number;
+    expect(originalMax).toBeGreaterThan(0);
+    const SMALL = 32;
+    (ProxyManager as any).MAX_PROBE_CACHE = SMALL;
 
-    // 真实 probeOutbound 驱动（不同 server_port → 不同 sha1 key），不复制实现驱逐逻辑——
-    // 若实现驱逐改成"删最新/漏 while/边界 off-by-one"，本测试会红（R2 review L1：原隔离测试零约束）。
-    // mock execFile 同步回调，单次 probe <1ms，MAX+20 次（2068）远不至超时。
-    mockExecFile.mockImplementation((...args: any[]) => cbOf(args)(null, '', ''));
-    const total = MAX + 20;
-    for (let i = 1; i <= total; i++) {
-      await pm.probeOutbound({ ...SNELL, server_port: 10000 + i }, false);
+    try {
+      mockExecFile.mockImplementation((...args: any[]) => cbOf(args)(null, '', ''));
+      const total = SMALL + 20;
+      for (let i = 1; i <= total; i++) {
+        await pm.probeOutbound({ ...SNELL, server_port: 10000 + i }, false);
+      }
+      // 缓存不超上限（实现的 while 驱逐生效）
+      expect(pm.probeCache.size).toBe(SMALL);
+      // 最近 probe 的仍在缓存；最早的已被驱逐
+      expect(await pm.probeOutbound({ ...SNELL, server_port: 10000 + total }, false)).toMatchObject({
+        ok: true,
+      });
+      expect(pm.probeCache.size).toBe(SMALL);
+    } finally {
+      (ProxyManager as any).MAX_PROBE_CACHE = originalMax;
     }
-    // probeCache.size 不超上限（实现的 while 驱逐生效）
-    expect(pm.probeCache.size).toBe(MAX);
-    // 最近 probe 的（port 10000+total）应在缓存
-    expect(await pm.probeOutbound({ ...SNELL, server_port: 10000 + total }, false)).toMatchObject({
-      ok: true,
-    });
-    // 超时根治（CI flaky）：MAX≈2048 → MAX+20 次真实 probe，每次含 sha1 + tmp config 写。本机 ~2-3s，但 CI
-    // 慢文件 IO（windows/macos runner）实测可达 ~30s，撞原 30000ms 硬超时 → jest 中断该用例 → 已在飞的 probe
-    // promise 泄漏，回调时污染下一用例「命中缓存」的 mockExecFile 计数（Received 2）→ 连锁 2 fail + worker 不优雅退出。
-    // 给 ~3x 余量使该用例在慢 CI 也必跑完（无中断、无 in-flight 泄漏），根除该 flaky。
-  }, 90000);
+  }, 30000);
 
   it('probeOutbound 实际命中缓存（不重复 spawn check）', async () => {
     mockExecFile.mockReset(); // 隔离前一个 case 的 mock 状态

@@ -28,6 +28,7 @@ import { CustomForm } from './custom-form';
 import { WarpPanel } from './warp-panel';
 import { FormSection } from './shared/form-layout';
 import { getSortedProtocolOptions } from './shared/protocol-options';
+import { protocolCapability } from '../../../shared/core-capabilities';
 import { isEndpointProtocol } from '../../../shared/endpoint-routes';
 import { isWarpServer } from '../../../shared/warp';
 import { NodePicker } from '@/components/ui/node-picker';
@@ -285,11 +286,19 @@ export function ServerConfigDialog({
               </SelectTrigger>
               <SelectContent>
                 {/* 组网协议（WireGuard/WARP/Tailscale）始终不进下拉：新增走组网 tab 顶部入口，编辑锁定协议。 */}
-                {getSortedProtocolOptions(t, i18n.language, (v) => v !== 'wireguard').map((p) => (
-                  <SelectItem key={p.value} value={p.value}>
-                    {p.label}
-                  </SelectItem>
-                ))}
+                {getSortedProtocolOptions(t, i18n.language, (v) => v !== 'wireguard').map((p) => {
+                  // 能力门控：mihomo 内核不支持的协议（naive/ssh/custom…）置灰并写明原因，
+                  // 而不是让用户填完表单、点「启用代理」才在启动期撞错误。
+                  const cap = protocolCapability(p.value);
+                  return (
+                    <SelectItem key={p.value} value={p.value} disabled={!cap.supported}>
+                      {p.label}
+                      {!cap.supported && (
+                        <span className="text-fg-faint"> · {t('servers.coreUnsupported', '不支持')}</span>
+                      )}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
             {isMeshEdit && (
@@ -300,6 +309,21 @@ export function ServerConfigDialog({
                 )}
               </div>
             )}
+            {(() => {
+              // 编辑旧节点时可能命中已保存但当前内核不支持的协议：明确告知原因 + 后果（不会被静默删除）。
+              const cap = protocolCapability(String(selectedProtocol));
+              if (cap.supported) return null;
+              return (
+                <div className="nd-swrow-d text-warning">
+                  {cap.reason}
+                  {' '}
+                  {t(
+                    'servers.coreUnsupportedHint',
+                    '该节点仍会保留，但启用代理时会被拒绝；请改用受支持的协议或换回 sing-box 内核。'
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           <div className="nd-fld">

@@ -21,6 +21,7 @@
  *  - core-manifest.json：读真实文件（jest.config 已开 resolveJSONModule），断言其字段为权威基准。
  */
 import * as actualCoreManifest from '../../../shared/core-manifest.json';
+import { PRODUCT_NAME, REPO_URL } from '../../../shared/repo';
 
 // ---- electron mock（必须在 import 被测模块之前）----
 const handleSpy = jest.fn();
@@ -156,8 +157,8 @@ describe('T10 VersionInfo 完整结构', () => {
       })
     );
     expect(result.appVersion).toBe('1.2.3');
-    expect(result.appName).toBe('FlowZ');
-    expect(result.repositoryUrl).toBe('https://github.com/dododook/FlowZ');
+    expect(result.appName).toBe(PRODUCT_NAME);
+    expect(result.repositoryUrl).toBe(REPO_URL);
     // copyright 含当前年份
     expect(result.copyright).toContain(String(new Date().getFullYear()));
   });

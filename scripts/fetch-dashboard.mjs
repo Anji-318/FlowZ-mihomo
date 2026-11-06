@@ -40,10 +40,12 @@ try {
   // -L 跟随重定向；-f 失败返回非零（不把 404 页面当成功）；--retry 抗瞬时网络抖动。
   // 与 fetch-core.mjs 同款回退：直连失败（国内常见 schannel 吊销脱机/重置）→ gh-proxy 镜像。
   const mirror = (process.env.FLOWZ_GH_MIRROR || 'https://gh-proxy.com/').replace(/\/?$/, '/');
+  // 镜像优先：实测国内直连 codeload 仅 ~24KB/s（6MB 要 4 分钟），gh-proxy ~1MB/s。
+  // 面板是纯静态资源、无完整性 pin（每次都从官方 gh-pages 拉最新），镜像只做传输层。
   const attempts = [
+    { label: `镜像 ${mirror}`, u: mirror + ZIP_URL, noRevoke: process.platform === 'win32' },
     { label: 'github 直连', u: ZIP_URL, noRevoke: false },
     ...(process.platform === 'win32' ? [{ label: 'github 直连(--ssl-no-revoke)', u: ZIP_URL, noRevoke: true }] : []),
-    { label: `镜像 ${mirror}`, u: mirror + ZIP_URL, noRevoke: process.platform === 'win32' },
   ];
   let downloaded = false;
   let lastErr = '';
@@ -66,12 +68,29 @@ try {
 
   mkdirSync(extractDir, { recursive: true });
   console.log('extracting ...');
-  // Windows 无 unzip 命令；Win10+ 自带 bsdtar（tar.exe）可解 zip。
-  if (process.platform === 'win32') {
-    execFileSync('tar', ['-xf', zipPath, '-C', extractDir], { stdio: 'inherit' });
-  } else {
-    execFileSync('unzip', ['-q', '-o', zipPath, '-d', extractDir], { stdio: 'inherit' });
+  // 解 zip 的跨平台坑（实测）：Git Bash 的 PATH 里 GNU tar 排在前面，它不认 zip，
+  // 报 "Cannot connect to C: resolve failed"（把 C:\... 当 host:path）；只有 cmd 下
+  // 系统自带的 bsdtar（tar.exe）才行。故这里用其绝对路径，再退 unzip。
+  const sysRoot = process.env.SystemRoot || process.env.windir || 'C:\\Windows';
+  const bsdtar = join(sysRoot, 'System32', 'tar.exe');
+  const extractAttempts = [];
+  if (process.platform === 'win32' && existsSync(bsdtar)) {
+    extractAttempts.push(() => execFileSync(bsdtar, ['-xf', zipPath, '-C', extractDir], { stdio: 'inherit' }));
   }
+  extractAttempts.push(() =>
+    execFileSync('unzip', ['-q', '-o', zipPath, '-d', extractDir], { stdio: 'inherit' })
+  );
+  let extractErr = null;
+  for (const run of extractAttempts) {
+    try {
+      run();
+      extractErr = null;
+      break;
+    } catch (e) {
+      extractErr = e;
+    }
+  }
+  if (extractErr) throw extractErr;
 
   // zipball 解出单一顶层目录（如 sing-box-dashboard-gh-pages/）；找含 index.html 的目录作为面板根。
   const top = readdirSync(extractDir).map((n) => join(extractDir, n));

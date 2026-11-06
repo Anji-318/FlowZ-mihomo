@@ -1,7 +1,7 @@
 {
-  "appId": "com.flowz.app",
-  "productName": "FlowZ Clash",
-  "copyright": "Copyright © 2025",
+  "appId": "com.flowz.mihomo",
+  "productName": "FlowZ Mihomo",
+  "copyright": "Copyright © 2025 FlowZ Project (MIT). Mihomo fork © 2026 contributors",
   "directories": {
     "output": "dist-package",
     "buildResources": "build"
@@ -73,7 +73,7 @@
     "allowToChangeInstallationDirectory": true,
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
-    "shortcutName": "FlowZ Clash",
+    "shortcutName": "FlowZ Mihomo",
     "installerIcon": "build/icon.ico",
     "uninstallerIcon": "build/icon.ico",
     "installerHeaderIcon": "build/icon.ico",
@@ -82,7 +82,7 @@
   },
   "portable": {
     "artifactName": "${productName}-${version}-win-${arch}-portable.${ext}",
-    "unpackDirName": "FlowZ Clash"
+    "unpackDirName": "FlowZ Mihomo"
   },
   "mac": {
     "target": [
@@ -169,8 +169,8 @@
     ],
     "category": "Network",
     "icon": "build/icons",
-    "synopsis": "Clean, modern cross-platform proxy client",
-    "description": "FlowZ Clash - a clean, modern cross-platform proxy client.",
+    "synopsis": "Clean, modern cross-platform proxy client (mihomo)",
+    "description": "FlowZ Mihomo - a clean, modern cross-platform proxy client (mihomo core).",
     "desktop": {
       "entry": {
         "Comment[zh_CN]": "简洁现代的跨平台代理客户端",
