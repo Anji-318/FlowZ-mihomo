@@ -19,6 +19,8 @@ import {
   AlertCircle,
   AlertTriangle,
   ArrowDownNarrowWide,
+  ArrowLeftRight,
+  Gauge,
   Loader2,
   Pause,
   Play,
@@ -195,6 +197,12 @@ export function ConnectionControlCard() {
       clearInterval(timer);
     };
   }, [config?.autoSelectFastest, isConnected]);
+
+  // 出口行内的两个紧凑开关（自动选优 / 故障转移）复用排序按钮的激活态样式，保持视觉一致。
+  const toggleActiveCls =
+    'border-[hsl(var(--flow)/0.4)] bg-[hsl(var(--flow-weak))] text-[hsl(var(--flow-hi))] hover:bg-[hsl(var(--flow-weak))]';
+  const autoSelectOn = config?.autoSelectFastest === true;
+  const autoSwitchOn = config?.autoSwitchNode === true;
 
   // 内核 tag 可能是去重后的名字（重名节点会带 " (2)"），匹配不到就直接显示 tag 原文。
   const autoOutboundName =
@@ -413,18 +421,48 @@ export function ConnectionControlCard() {
                 selectedServerId={selectedServerId ?? undefined}
                 onSelect={handleServerChange}
               />
-              {config?.autoSelectFastest === true && (
-                <span
-                  className="text-[11px] whitespace-nowrap text-[hsl(var(--flow-hi))]"
-                  title={t(
-                    'home.autoSelectHint',
-                    '已开启自动选优：出口由内核按测速结果决定（这里显示内核实际选中的节点）；手动选择节点会关闭该模式'
-                  )}
-                >
-                  {t('home.autoSelectBadge', '自动选优')}
-                  {autoOutboundName ? ` · ${autoOutboundName}` : ''}
-                </span>
-              )}
+              {/* 自动选优 / 故障转移：放在测速左侧，替代原来占宽的文字徽标。
+                  两者互斥（url-test 自选 vs 心跳换节点），自动选优开启时故障转移置灰。 */}
+              <button
+                type="button"
+                className={cn('btn ghost icon shrink-0', autoSelectOn && toggleActiveCls)}
+                aria-pressed={autoSelectOn}
+                title={`${t('settings.advanced.autoSelectFastest')}${
+                  autoOutboundName ? `（当前：${autoOutboundName}）` : ''
+                }`}
+                aria-label={t('settings.advanced.autoSelectFastest')}
+                onClick={() => {
+                  if (!config) return;
+                  saveConfig({ ...config, autoSelectFastest: !autoSelectOn }).catch(() =>
+                    toast.error(t('common.saveFailed'))
+                  );
+                }}
+              >
+                <Gauge className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  'btn ghost icon shrink-0 disabled:opacity-40',
+                  autoSwitchOn && !autoSelectOn && toggleActiveCls
+                )}
+                disabled={autoSelectOn}
+                aria-pressed={autoSwitchOn && !autoSelectOn}
+                title={
+                  autoSelectOn
+                    ? t('settings.advanced.autoSwitchNodeSuperseded')
+                    : t('settings.advanced.autoSwitchNode')
+                }
+                aria-label={t('settings.advanced.autoSwitchNode')}
+                onClick={() => {
+                  if (!config) return;
+                  saveConfig({ ...config, autoSwitchNode: !autoSwitchOn }).catch(() =>
+                    toast.error(t('common.saveFailed'))
+                  );
+                }}
+              >
+                <ArrowLeftRight className="h-4 w-4" />
+              </button>
               {servers.length > 0 && (
                 <>
                   <button
