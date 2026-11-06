@@ -2,7 +2,7 @@
 
 本文件只记录**本 fork（FlowZ Mihomo）**的改动。上游 FlowZ 的变更请见其 Release Notes。
 
-## 4.5.0 — 2026-11-06
+## 4.4.8 — 2026-11-06
 
 首轮「可分发」整备。核心是四件事：**内核升到最新且能持续升**、**更新不再指向 sing-box 版**、
 **能力差异对用户可见**、**发布链路能出安装包并自带校验**。
@@ -69,7 +69,7 @@
 
 - `fetch:dashboard.mjs`：解 zip 改用系统 bsdtar 绝对路径（Git Bash 的 GNU tar 不认 zip，报
   `Cannot connect to C: resolve failed`），并改为镜像优先下载。
-- 端到端验证：`electron-builder --win` 产出 `FlowZ Mihomo-4.5.0-win-x64-setup.exe` / `-portable.exe`（各 123MB），
+- 端到端验证：`electron-builder --win` 产出 `FlowZ Mihomo-4.4.8-win-x64-setup.exe` / `-portable.exe`（各 123MB），
   asar 内含 `js-yaml` / `@grpc/grpc-js`，`resources/win/mihomo.exe` 与面板资源齐备，打包版主程序可启动。
 
 ### 验证

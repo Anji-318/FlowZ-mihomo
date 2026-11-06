@@ -4,7 +4,7 @@
  * 历史：这份测试原来针对 sing-box（JSON 配置 + outbounds[]/endpoints[] 分野）。换核后
  * `probeOutbound` 改为生成 **YAML**（`proxies[]` + `proxy-groups`），且 mihomo 没有
  * endpoint/outbound 分野 —— 旧断言（JSON.parse、outbounds、未知 snell 类型）必然失败，
- * 已在 v4.5.0 一并重写（它也是当时 CI 长期红着的两个用例）。
+ * 已在 v4.4.8 一并重写（它也是当时 CI 长期红着的两个用例）。
  *
  * 现在验证的「内核即权威」不变量没变：verdict 只由内核 check 结果决定，FlowZ 只负责把
  * 用户定义包成最小可校验配置。

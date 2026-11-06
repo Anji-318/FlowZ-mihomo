@@ -63,8 +63,8 @@ jobs:
             exit 1
           fi
           echo "version=$V" >> "$GITHUB_OUTPUT"
-          # 防误降级：输入低于当前 package.json 版本时直接拒绝（历史教训：误填 4.4.8 把 4.5.0 降级，
-          # main 的版本号被改小，应用内更新检查再也看不到「新版本」）。确需回退时才允许显式勾选。
+          # 防误降级：输入低于当前 package.json 版本时直接拒绝 —— 版本号一旦改小，应用内更新检查
+          # （远端 tag > 本地版本）就再也提示不到这次发布。确需回退时才允许显式勾选 allow_downgrade。
           CURRENT="$(node -p "require('./package.json').version")"
           if [ "$V" != "$CURRENT" ]; then
             LOWER="$(printf '%s\n%s\n' "$V" "$CURRENT" | sort -V | head -1)"
