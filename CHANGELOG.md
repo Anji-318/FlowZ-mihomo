@@ -48,24 +48,6 @@ proxy-selector  type=URLTest  interval=60  tolerance=20  now=🇭🇰香港-2
 - `URLTEST_TOLERANCE_PRESETS` 收口在 `src/shared/urltest-settings.ts`（与 interval 同一真值）。
 - 想要「严格选最低」选 `严格` 即可；想让视频/会议这类长连接更稳建议 50ms。
 
-### 补充：把「切换容差」做成设置项（避免「有更低延迟却不切」的误解）
-
-`url-test` 的规则是：**候选节点必须比当前出口快超过 tolerance 才切换**。现场实测（2026-11-08，本机 9090 管理口）：
-
-```
-proxy-selector  type=URLTest  interval=60  tolerance=20  now=🇭🇰香港-2
-🇭🇰香港-2    63 → 57 → 64 → 60 ms
-🇭🇰香港-6-WS 46 → 52 → 48 → 45 ms   （差 12–17ms < 容差 20ms → 不切）
-```
-
-两个节点只差十几毫秒，内核按设计**不切换**（避免相邻节点随测速噪声每分钟互切、打断长连接）。
-这不是失效，但用户从界面看到「46ms 的节点却没被选中」会认为功能坏了 —— 根因是容差不可见也不可调。
-
-- 设置页在「测速间隔」下新增 **切换容差**：`严格(0ms) / 20ms / 50ms / 100ms` 四档，
-  文案说明「调小=更贴近严格最低延迟但会抖、调大=更稳」。
-- `URLTEST_TOLERANCE_PRESETS` 收口在 `src/shared/urltest-settings.ts`（与 interval 同一真值）。
-- 想要「严格选最低」选 `严格` 即可；想让视频/会议这类长连接更稳建议 50ms。
-
 ### 校验：三种接管 × 三种路由全矩阵
 
 `verify:config` 从 3 组扩到 **10 组**（TUN / 系统代理 / 仅本地 × 智能 / 全局 / 直连 + 自动选优专项），
