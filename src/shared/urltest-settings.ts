@@ -22,6 +22,12 @@ export const MAX_URLTEST_TOLERANCE_MS = 2000;
 /** 设置页给出的预设（秒）。自由输入也会被 clamp 到 [MIN, MAX]。 */
 export const URLTEST_INTERVAL_PRESETS = [30, 60, 120, 300] as const;
 
+/**
+ * 设置页给出的容差预设（毫秒）。0 = 不设容差，严格选最低延迟 —— 对「纯粹要最快」的用户，
+ * 代价是两个相差几 ms 的节点会随测速噪声来回切；50/100 留给「长连接稳定优先」的用户。
+ */
+export const URLTEST_TOLERANCE_PRESETS = [0, 20, 50, 100] as const;
+
 export interface ResolvedUrltest {
   /** 秒，已取整并 clamp。 */
   interval: number;

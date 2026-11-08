@@ -23,7 +23,7 @@ import {
 import type { CustomDnsUpstream, DnsConfig, TunStack } from '@shared/types';
 import { DEFAULT_BYPASS_LAN } from '@shared/system-proxy-bypass';
 import { parseSpeedTestUrl, DEFAULT_SPEED_TEST_URL } from '@shared/speed-test';
-import { URLTEST_INTERVAL_PRESETS, resolveUrltestSettings } from '@shared/urltest-settings';
+import { URLTEST_INTERVAL_PRESETS, URLTEST_TOLERANCE_PRESETS, resolveUrltestSettings } from '@shared/urltest-settings';
 import {
   resolveTunStack,
   resolveTunMtu,
@@ -852,6 +852,34 @@ export function NetworkSettings() {
                     }
                   >
                     {sec < 60 ? `${sec}s` : `${sec / 60}min`}
+                  </button>
+                );
+              })}
+            </div>
+          </Srow>
+        )}
+        {config.autoSelectFastest === true && (
+          <Srow
+            label={t('settings.advanced.urltestTolerance')}
+            desc={t('settings.advanced.urltestToleranceDesc')}
+          >
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+              {/* 容差 = 新节点要比当前快超过该值才切换。调小 = 更贴近「严格最低延迟」但切换更频繁；
+                  调大 = 更抗抖动。0 也允许（严格最低），上限由 shared 层 clamp。 */}
+              {URLTEST_TOLERANCE_PRESETS.map((ms) => {
+                const active = resolveUrltestSettings(config).tolerance === ms;
+                return (
+                  <button
+                    key={ms}
+                    type="button"
+                    className={active ? 'btn flow sm' : 'btn ghost sm'}
+                    onClick={() =>
+                      saveConfig({ ...config, urltestToleranceMs: ms }).catch(() =>
+                        toast.error(t('common.saveFailed'))
+                      )
+                    }
+                  >
+                    {ms === 0 ? t('settings.advanced.urltestToleranceOff') : `${ms}ms`}
                   </button>
                 );
               })}
