@@ -12,6 +12,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useAppStore } from '@/store/app-store';
+import { useServerViewPrefs } from '../settings/use-server-view-prefs';
 import { api } from '@/ipc/api-client';
 import { useNodeSortStore } from '@/store/use-node-sort-store';
 import { useSpeedTest } from '@/components/settings/use-speed-test';
@@ -39,6 +40,7 @@ import { TsExitWarning } from './ts-exit-warning';
 import { willRestartOnSelect } from './pending-select-hint';
 import { DIRECT_SERVER_ID, isDirectSelection } from '@shared/direct-selection';
 import { withAutoMode } from '@shared/auto-mode';
+import { filterTimeoutNodes } from '@shared/latency-filter';
 import { sortServersByLatency } from '@shared/server-latency-sort';
 import { isServerComplete } from '@shared/server-completeness';
 import { applyFakeIpTunEntry } from '@shared/fakeip-tun-entry';
@@ -70,12 +72,14 @@ function ExitNodePicker({
   const proxyRunning = useAppStore((s) => !!s.connectionStatus?.proxyCore?.running);
   const proxyBlocked = useAppStore((s) => s.ipInfo?.proxyBlocked);
   const speedTestAttempted = useAppStore((s) => s.speedTestAttempted);
+  // 「隐藏超时节点」与节点页工具栏共用同一偏好 store（localStorage 持久化）。
+  const hideTimeout = useServerViewPrefs((s) => s.hideTimeout);
 
   // 直连哨兵（#73）恒置顶；组内按延迟排序开关；共享映射与规则/应用分流/detour 口径统一。
   // memo 对齐 rule-dialog / app-rules-card：仅在输入（节点/订阅/延迟/排序开关/i18n/登录·出口态）变化时重算，测速广播不空跑。
   const { items, groups } = useMemo(
-    () =>
-      buildServerPickerModel({
+    () => {
+      const model = buildServerPickerModel({
         servers,
         subscriptions,
         latencyMap,
@@ -94,7 +98,16 @@ function ExitNodePicker({
           exitInvalidLabel: t('home.exitInvalid', '出口无效'),
           notLoggedInLabel: t('servers.tsNotLoggedIn', '未登录'),
         },
-      }),
+      });
+      // 隐藏超时：只藏测过且失败的节点。**当前出口与「直连」哨兵必须保留** —— 否则用户正在用的节点
+      // 会因为一次测速失败从下拉里凭空消失，连「换回去」都做不到。口径与节点页列表共用 shared/latency-filter。
+      const keep = new Set<string>([DIRECT_SERVER_ID]);
+      if (selectedServerId) keep.add(selectedServerId);
+      return {
+        items: filterTimeoutNodes(model.items, latencyMap, hideTimeout, keep),
+        groups: model.groups,
+      };
+    },
     [
       servers,
       subscriptions,
@@ -106,6 +119,7 @@ function ExitNodePicker({
       proxyRunning,
       proxyBlocked,
       speedTestAttempted,
+      hideTimeout,
     ]
   );
 

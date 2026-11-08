@@ -59,6 +59,18 @@ proxy-selector  type=URLTest  interval=60  tolerance=20  now=🇭🇰香港-2
   （否则「关掉自动选优」会意外启动心跳换节点）；
 - `src/shared/__tests__/auto-mode.test.ts` 6 个用例覆盖双向开启、单独关闭、脏配置、不可变性。
 
+### 新增：隐藏超时节点开关
+
+节点页工具栏新增「隐藏超时」按钮（眼睛图标，激活态描边 + 已隐藏数量角标），**首页出口下拉同步生效**。
+
+- 只隐藏「测过且失败」的节点（`latencyMap[id] = -1/0`）；**从未测过的节点保留**，否则刚装好还没测速时列表会整个空掉。
+- 首页下拉里**当前出口与「直连」哨兵永不隐藏** —— 否则用户正在用的节点会因一次测速失败从下拉里凭空消失。
+- 偏好存 localStorage（`flowz.serverHideTimeout`），与排序偏好同层；写 UserConfig 会触发 `switchMode` 重启代理，
+  改个显示开关绝不能断网，故不进 UserConfig。
+- 判定/过滤收口到 `src/shared/latency-filter.ts`（两处 UI 共用，防口径漂移），
+  `latency-filter.test.ts` 覆盖：失败值判定、未测速保留、keepIds、全超时空列表、隐藏计数。
+- 本组节点全部超时导致列表空时，空态给「显示超时节点」按钮，一键恢复。
+
 ### 校验：三种接管 × 三种路由全矩阵
 
 `verify:config` 从 3 组扩到 **10 组**（TUN / 系统代理 / 仅本地 × 智能 / 全局 / 直连 + 自动选优专项），

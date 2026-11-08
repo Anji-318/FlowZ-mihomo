@@ -8,8 +8,13 @@ import { useTranslation } from 'react-i18next';
 import { getSortedProtocolOptions } from './shared/protocol-options';
 import { sortServers, type ServerConfigWithId } from './server-list-helpers';
 import { useServerSortStore } from './use-server-sort-store';
+import { filterTimeoutNodes, countHiddenTimeoutNodes } from '@shared/latency-filter';
 
-export function useServerFilter(servers: ServerConfigWithId[], latencyMap: Record<string, number>) {
+export function useServerFilter(
+  servers: ServerConfigWithId[],
+  latencyMap: Record<string, number>,
+  hideTimeout = false
+) {
   const { t, i18n } = useTranslation();
 
   // 搜索 / 过滤每实例本地态（切 Tab/页面清空是预期行为）；
@@ -52,11 +57,23 @@ export function useServerFilter(servers: ServerConfigWithId[], latencyMap: Recor
       list = list.filter((s) => s.protocol.toLowerCase() === filterProtocol);
     }
 
+    // 隐藏超时：只藏「明确测过且失败(-1/0)」的节点；从未测过的保留，否则首次打开列表会空。
+    // 判定/过滤收口在 shared/latency-filter，与首页出口下拉同口径。
+    if (hideTimeout) {
+      list = filterTimeoutNodes(list, latencyMap, true);
+    }
+
     // 排序（latency 对无测速结果优雅降级：无结果沉底、全空按名称，见 sortServers）
     list = sortServers(list, sortKey, sortOrder, latencyMap);
 
     return list;
-  }, [servers, searchQuery, filterProtocol, sortKey, sortOrder, latencyMap]);
+  }, [servers, searchQuery, filterProtocol, sortKey, sortOrder, latencyMap, hideTimeout]);
+
+  // 基于本组全量统计（不受搜索词/协议筛选影响），给工具栏显示「已隐藏 N 个」。
+  const hiddenTimeoutCount = useMemo(
+    () => countHiddenTimeoutNodes(servers, latencyMap, hideTimeout),
+    [servers, latencyMap, hideTimeout]
+  );
 
   return {
     searchQuery,
@@ -69,5 +86,6 @@ export function useServerFilter(servers: ServerConfigWithId[], latencyMap: Recor
     setSortOrder,
     availableProtocols,
     filteredServers,
+    hiddenTimeoutCount,
   };
 }

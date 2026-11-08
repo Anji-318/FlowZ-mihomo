@@ -25,6 +25,8 @@ import {
   Trash2,
   Plus,
   HardDriveDownload,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { generateShareUrl } from '@/bridge/api-wrapper';
 import { useTranslation } from 'react-i18next';
@@ -45,6 +47,7 @@ import {
 } from './server-list-helpers';
 import { useSpeedTest } from './use-speed-test';
 import { useServerFilter } from './use-server-filter';
+import { useServerViewPrefs } from './use-server-view-prefs';
 import { PendingChangesBar } from './pending-changes-bar';
 
 interface ServerListProps {
@@ -73,6 +76,9 @@ export function ServerList({
   onImportClick,
 }: ServerListProps) {
   const latencyMap = useAppStore((state) => state.latencyMap);
+  // 「隐藏超时节点」视图偏好：与首页出口下拉共用同一 store（localStorage 持久化，改它不触发重启代理）。
+  const hideTimeout = useServerViewPrefs((s) => s.hideTimeout);
+  const toggleHideTimeout = useServerViewPrefs((s) => s.toggleHideTimeout);
   // 启动前配置校验 gate 剔除的非法节点：列表标灰 + tooltip（不禁用点击，用户仍可选/编辑/删除）。
   const invalidNodes = useAppStore((state) => state.invalidNodes);
   // Tailscale 节点真实登录态（serverId → loggedIn）：驱动「需登录」角标，交互登录成功后角标自动消失。
@@ -103,7 +109,8 @@ export function ServerList({
     setSortOrder,
     availableProtocols,
     filteredServers,
-  } = useServerFilter(servers, latencyMap);
+    hiddenTimeoutCount,
+  } = useServerFilter(servers, latencyMap, hideTimeout);
 
   // 组网同网段「被覆盖」检测（首声明者占有，与 route-builder 同一不变量）：列表角标提醒用，零布局破坏。
   // 基准与 route-builder 块 0c 同 gate：仅「本轮实际发射 force-route」的节点参与占段，否则仅出网且未 engaged 的
@@ -387,6 +394,22 @@ export function ServerList({
           </div>
         </div>
 
+        {/* 隐藏超时节点：只藏「测过且失败」的，未测过的保留；当前出口在首页下拉里永不隐藏。
+            偏好持久化，节点页与首页出口下拉同步生效。 */}
+        <button
+          type="button"
+          className={`btn ghost sm${hideTimeout ? ' on' : ''}`}
+          onClick={toggleHideTimeout}
+          aria-pressed={hideTimeout}
+          title={t('servers.hideTimeoutTip')}
+        >
+          {hideTimeout ? <EyeOff /> : <Eye />}
+          {t('servers.hideTimeout')}
+          {hiddenTimeoutCount > 0 && (
+            <span className="nd-mi-r tnum">{hiddenTimeoutCount}</span>
+          )}
+        </button>
+
         <button
           type="button"
           className="btn ghost sm"
@@ -487,13 +510,25 @@ export function ServerList({
               ? showAddButton
                 ? t('servers.noServers')
                 : t('servers.noNodes')
-              : t('servers.noMatchingNodes')}
+              : hiddenTimeoutCount > 0 && !searchQuery.trim() && filterProtocol === 'all'
+                ? t('servers.allNodesTimeout')
+                : t('servers.noMatchingNodes')}
           </b>
           {servers.length === 0
             ? showAddButton
               ? t('servers.noServersDesc')
               : t('servers.noSubNodesDesc')
-            : t('servers.noMatchingDesc')}
+            : hiddenTimeoutCount > 0 && !searchQuery.trim() && filterProtocol === 'all'
+              ? t('servers.allNodesTimeoutDesc')
+              : t('servers.noMatchingDesc')}
+          {hiddenTimeoutCount > 0 && filteredServers.length === 0 && (
+            <div className="nd-stub-cta flex justify-center gap-2">
+              <button type="button" className="btn ghost sm" onClick={toggleHideTimeout}>
+                <Eye />
+                {t('servers.showTimeoutNodes')}
+              </button>
+            </div>
+          )}
           {servers.length === 0 && showAddButton && (
             <div className="nd-stub-cta flex justify-center gap-2">
               <button type="button" className="btn flow sm" onClick={onAddServer}>
