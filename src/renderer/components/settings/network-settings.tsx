@@ -24,6 +24,7 @@ import type { CustomDnsUpstream, DnsConfig, TunStack } from '@shared/types';
 import { DEFAULT_BYPASS_LAN } from '@shared/system-proxy-bypass';
 import { parseSpeedTestUrl, DEFAULT_SPEED_TEST_URL } from '@shared/speed-test';
 import { URLTEST_INTERVAL_PRESETS, URLTEST_TOLERANCE_PRESETS, resolveUrltestSettings } from '@shared/urltest-settings';
+import { withAutoMode } from '@shared/auto-mode';
 import {
   resolveTunStack,
   resolveTunMtu,
@@ -809,27 +810,34 @@ export function NetworkSettings() {
           label={t('settings.advanced.autoSwitchNode')}
           desc={
             config.autoSelectFastest === true
-              ? t('settings.advanced.autoSwitchNodeSuperseded')
+              ? t('settings.advanced.autoSwitchNodeMutual')
               : t('settings.advanced.autoSwitchNodeDesc')
           }
         >
-          {/* 自动选优开启时本开关被接管（主进程已停用 AutoSwitchService）：置灰而不是隐藏，
-              让用户知道这个能力还在、只是暂时由 url-test 负责，关掉自动选优即恢复。 */}
+          {/* 与自动选优双向互斥：开启本项自动关闭自动选优；反之亦然。不再置灰 ——
+              用户从任一入口都能一键切换模式，不必先去关另一个。 */}
           <Swt
             checked={config.autoSwitchNode === true}
-            disabled={config.autoSelectFastest === true}
-            onChange={(c) => setBool('autoSwitchNode', c)}
+            onChange={(c) =>
+              saveConfig(withAutoMode(config, 'autoSwitchNode', c)).catch(() =>
+                toast.error(t('common.saveFailed'))
+              )
+            }
           />
         </Srow>
-        {/* 自动选优：把出口交给内核 url-test。与上面的「故障切换」互斥——开启后心跳换节点停用，
-            改由内核按测速结果自选，坏节点在下一轮测速被跳过。 */}
+        {/* 自动选优：把出口交给内核 url-test。与上面的「故障切换」双向互斥——
+            任一开启都会关掉另一个，避免两套逻辑同时写 proxy-selector。 */}
         <Srow
           label={t('settings.advanced.autoSelectFastest')}
           desc={t('settings.advanced.autoSelectFastestDesc')}
         >
           <Swt
             checked={config.autoSelectFastest === true}
-            onChange={(c) => setBool('autoSelectFastest', c)}
+            onChange={(c) =>
+              saveConfig(withAutoMode(config, 'autoSelectFastest', c)).catch(() =>
+                toast.error(t('common.saveFailed'))
+              )
+            }
           />
         </Srow>
         {config.autoSelectFastest === true && (

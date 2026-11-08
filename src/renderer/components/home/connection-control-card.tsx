@@ -38,6 +38,7 @@ import { UnlockInline } from './unlock-inline';
 import { TsExitWarning } from './ts-exit-warning';
 import { willRestartOnSelect } from './pending-select-hint';
 import { DIRECT_SERVER_ID, isDirectSelection } from '@shared/direct-selection';
+import { withAutoMode } from '@shared/auto-mode';
 import { sortServersByLatency } from '@shared/server-latency-sort';
 import { isServerComplete } from '@shared/server-completeness';
 import { applyFakeIpTunEntry } from '@shared/fakeip-tun-entry';
@@ -421,8 +422,9 @@ export function ConnectionControlCard() {
                 selectedServerId={selectedServerId ?? undefined}
                 onSelect={handleServerChange}
               />
-              {/* 自动选优 / 故障转移：放在测速左侧，替代原来占宽的文字徽标。
-                  两者互斥（url-test 自选 vs 心跳换节点），自动选优开启时故障转移置灰。 */}
+              {/* 自动选优 / 故障转移：**双向互斥**。点任一个「开启」都会同时关掉另一个，
+                  因为两套逻辑会抢同一个 proxy-selector（url-test 内核自选 vs 心跳 PUT 换节点）。
+                  两个按钮均可点，用户从任一侧一键切换模式，不需要先手动去关另一个。 */}
               <button
                 type="button"
                 className={cn('btn ghost icon shrink-0', autoSelectOn && toggleActiveCls)}
@@ -433,7 +435,9 @@ export function ConnectionControlCard() {
                 aria-label={t('settings.advanced.autoSelectFastest')}
                 onClick={() => {
                   if (!config) return;
-                  saveConfig({ ...config, autoSelectFastest: !autoSelectOn }).catch(() =>
+                  const next = !autoSelectOn;
+                  // 互斥规则收口在 shared/auto-mode，两处 UI 与主进程前提共用同一份语义。
+                  saveConfig(withAutoMode(config, 'autoSelectFastest', next)).catch(() =>
                     toast.error(t('common.saveFailed'))
                   );
                 }}
@@ -443,20 +447,20 @@ export function ConnectionControlCard() {
               <button
                 type="button"
                 className={cn(
-                  'btn ghost icon shrink-0 disabled:opacity-40',
+                  'btn ghost icon shrink-0',
                   autoSwitchOn && !autoSelectOn && toggleActiveCls
                 )}
-                disabled={autoSelectOn}
                 aria-pressed={autoSwitchOn && !autoSelectOn}
                 title={
                   autoSelectOn
-                    ? t('settings.advanced.autoSwitchNodeSuperseded')
+                    ? t('settings.advanced.autoSwitchNodeMutual')
                     : t('settings.advanced.autoSwitchNode')
                 }
                 aria-label={t('settings.advanced.autoSwitchNode')}
                 onClick={() => {
                   if (!config) return;
-                  saveConfig({ ...config, autoSwitchNode: !autoSwitchOn }).catch(() =>
+                  const next = !autoSwitchOn;
+                  saveConfig(withAutoMode(config, 'autoSwitchNode', next)).catch(() =>
                     toast.error(t('common.saveFailed'))
                   );
                 }}
